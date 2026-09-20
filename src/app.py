@@ -59,19 +59,20 @@ time_step = st.sidebar.number_input("Time Step (Mins)", value=10.0, step=5.0)
 
 region_names = [r.name for r in regions_list]
 
+# Initialize custom rainfall map in session state
+if "custom_rainfall_map" not in st.session_state:
+    st.session_state["custom_rainfall_map"] = {}
+
+# Update base defaults
+for r in regions_list:
+    if r.name not in st.session_state["custom_rainfall_map"]:
+        st.session_state["custom_rainfall_map"][r.name] = global_rain
+
 selected_epicenters = st.sidebar.multiselect(
     "Active Rainfall Regions:", 
     region_names, 
     default=region_names[:min(2, len(region_names))]
 )
-
-if "custom_rainfall_map" not in st.session_state:
-    st.session_state["custom_rainfall_map"] = {r.name: global_rain for r in regions_list}
-
-# Sync base global rainfall for selected epicenters
-for name in selected_epicenters:
-    if name not in st.session_state["custom_rainfall_map"]:
-        st.session_state["custom_rainfall_map"][name] = global_rain
 
 start_r_ids = [r.id for r in regions_list if r.name in selected_epicenters]
 
@@ -164,12 +165,23 @@ with tab1:
                 
         if boxed_regions:
             st.success(f"📌 **Box Selected Regions ({len(boxed_regions)}):** {', '.join(boxed_regions)}")
+            
+            # Input box for custom intensity
+            current_val = st.session_state["custom_rainfall_map"].get(boxed_regions[0], global_rain)
             custom_box_rain = st.number_input(
-                f"🌧️ Apply Custom Rainfall Intensity for Selected Box ({', '.join(boxed_regions)}):",
-                value=global_rain, min_value=0.0, max_value=200.0, key="box_rain_input"
+                f"🌧️ Apply Custom Rainfall Intensity for Selected Grids ({', '.join(boxed_regions)}):",
+                value=float(current_val), min_value=0.0, max_value=200.0, key="box_rain_input"
             )
+            
+            # Immediately commit to session state and trigger rerun if changed
+            changed = False
             for name in boxed_regions:
-                st.session_state["custom_rainfall_map"][name] = custom_box_rain
+                if st.session_state["custom_rainfall_map"].get(name) != custom_box_rain:
+                    st.session_state["custom_rainfall_map"][name] = custom_box_rain
+                    changed = True
+            
+            if changed:
+                st.rerun()
 
     st.markdown("---")
     

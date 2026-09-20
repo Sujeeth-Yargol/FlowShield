@@ -3,7 +3,7 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 
-def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dragmode: str = "select"):
+def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dragmode: str = "select", custom_rain_map: dict = None):
     region_ids = sim_res["region_ids"]
     regions = sim_res["regions"]
     
@@ -24,13 +24,16 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         r = regions[rid]
         r_i, c_i = r.grid_pos
         
+        # Determine rainfall intensity for this specific cell
+        rain_val = custom_rain_map.get(r.name, 45.0) if custom_rain_map else 45.0
+        
         if "Status" in layer_mode:
             val = sim_res["water_levels"][time_idx, idx] / r.max_capacity
             status = sim_res["statuses"][time_idx][idx]
-            label = f"<b>{r.name}</b><br>● {status}<br>💧 {sim_res['water_levels'][time_idx, idx]:.1f} mm<br>⛰️ {r.elevation:.0f}m"
+            label = f"<b>{r.name}</b><br>● {status}<br>🌧️ {rain_val:.0f} mm/hr<br>💧 {sim_res['water_levels'][time_idx, idx]:.1f} mm<br>⛰️ {r.elevation:.0f}m"
         elif "Water" in layer_mode:
             val = sim_res["water_levels"][time_idx, idx]
-            label = f"<b>{r.name}</b><br>💧 {val:.1f} mm"
+            label = f"<b>{r.name}</b><br>🌧️ {rain_val:.0f} mm/hr<br>💧 {val:.1f} mm"
         elif "Elevation" in layer_mode:
             val = r.elevation
             label = f"<b>{r.name}</b><br>⛰️ {val:.0f} m"
@@ -41,7 +44,7 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         grid_data[r_i, c_i] = val
         text_matrix[r_i][c_i] = r.name
         annotations.append(
-            dict(x=c_i, y=r_i, text=label, showarrow=False, font=dict(color="white", size=11, family="Inter"))
+            dict(x=c_i, y=r_i, text=label, showarrow=False, font=dict(color="white", size=10, family="Inter"))
         )
 
     colorscale = [
@@ -66,8 +69,8 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=40, r=20, t=20, b=40),
-        height=480,
-        dragmode=active_dragmode  # "select" enables rectangle drag box selection
+        height=520,
+        dragmode=active_dragmode
     )
     return fig
 

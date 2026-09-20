@@ -46,10 +46,9 @@ else:
 st.sidebar.markdown("---")
 st.sidebar.subheader("🌧️ Climate & Rainfall Setup")
 
-# Selection Mode Toggle Button
 col_rain1, col_rain2 = st.sidebar.columns([1, 1])
 with col_rain1:
-    global_rain = st.number_input("Rainfall Intensity (mm/hr)", min_value=0.0, max_value=200.0, value=45.0)
+    global_rain = st.number_input("Base Rainfall (mm/hr)", min_value=0.0, max_value=200.0, value=45.0)
 with col_rain2:
     st.write("")
     st.write("")
@@ -65,6 +64,14 @@ selected_epicenters = st.sidebar.multiselect(
     region_names, 
     default=region_names[:min(2, len(region_names))]
 )
+
+if "custom_rainfall_map" not in st.session_state:
+    st.session_state["custom_rainfall_map"] = {r.name: global_rain for r in regions_list}
+
+# Sync base global rainfall for selected epicenters
+for name in selected_epicenters:
+    if name not in st.session_state["custom_rainfall_map"]:
+        st.session_state["custom_rainfall_map"][name] = global_rain
 
 start_r_ids = [r.id for r in regions_list if r.name in selected_epicenters]
 
@@ -142,11 +149,10 @@ with tab1:
     )
     
     drag_mode = "select" if enable_box_select else "pan"
-    fig_map = render_grid_heatmap(sim_result, selected_step, layer_mode, active_dragmode=drag_mode)
+    fig_map = render_grid_heatmap(sim_result, selected_step, layer_mode, active_dragmode=drag_mode, custom_rain_map=st.session_state["custom_rainfall_map"])
     
     event = st.plotly_chart(fig_map, use_container_width=True, on_select="rerun", selection_mode="points")
     
-    # Process Mouse Drag/Rectangle Selection
     if event and "selection" in event and event["selection"]["points"]:
         selected_points = event["selection"]["points"]
         boxed_regions = []
@@ -162,6 +168,8 @@ with tab1:
                 f"🌧️ Apply Custom Rainfall Intensity for Selected Box ({', '.join(boxed_regions)}):",
                 value=global_rain, min_value=0.0, max_value=200.0, key="box_rain_input"
             )
+            for name in boxed_regions:
+                st.session_state["custom_rainfall_map"][name] = custom_box_rain
 
     st.markdown("---")
     
@@ -182,6 +190,7 @@ with tab1:
             "Sector": r.sector,
             "Elevation (m)": r.elevation,
             "Drainage (mm/hr)": r.drainage_capacity,
+            "Rainfall Intensity (mm/hr)": f"{st.session_state['custom_rainfall_map'].get(r.name, global_rain):.0f}",
             "Water Level (mm)": f"{lvl:.1f} / {cap:.0f}",
             "Capacity Fill": round(lvl / cap, 3),
             "Status": curr_statuses[idx],

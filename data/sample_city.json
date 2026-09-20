@@ -1,21 +1,23 @@
 {
-  "grid_size": [4, 4],
   "regions": [
-    {"id": "R_0_0", "name": "Yeshwanthpur", "sector": "North-West", "grid_pos": [0, 0], "elevation": 935.0, "drainage_capacity": 35.0, "initial_water_level": 0.0, "max_capacity": 80.0, "population": 22000, "terrain_type": 1},
-    {"id": "R_0_1", "name": "Hebbal - Sahakar Nagar", "sector": "North (Hebbal Basin)", "grid_pos": [0, 1], "elevation": 915.0, "drainage_capacity": 18.0, "initial_water_level": 0.0, "max_capacity": 80.0, "population": 28000, "terrain_type": 1},
-    {"id": "R_0_2", "name": "Manyata Tech Park - Nagavara", "sector": "North-East (Nagavara Valley)", "grid_pos": [0, 2], "elevation": 905.0, "drainage_capacity": 15.0, "initial_water_level": 0.0, "max_capacity": 70.0, "population": 45000, "terrain_type": 1},
-    {"id": "R_0_3", "name": "Hennur - KR Puram Lake Reach", "sector": "North-East (Hennur Basin)", "grid_pos": [0, 3], "elevation": 895.0, "drainage_capacity": 13.0, "initial_water_level": 0.0, "max_capacity": 65.0, "population": 31000, "terrain_type": 1},
-    {"id": "R_1_0", "name": "Rajajinagar", "sector": "West-Central", "grid_pos": [1, 0], "elevation": 930.0, "drainage_capacity": 32.0, "initial_water_level": 0.0, "max_capacity": 80.0, "population": 26000, "terrain_type": 2},
-    {"id": "R_1_1", "name": "Majestic", "sector": "Central Core", "grid_pos": [1, 1], "elevation": 922.0, "drainage_capacity": 25.0, "initial_water_level": 0.0, "max_capacity": 75.0, "population": 52000, "terrain_type": 2},
-    {"id": "R_1_2", "name": "Indiranagar - Domlur Valley", "sector": "East-Central", "grid_pos": [1, 2], "elevation": 910.0, "drainage_capacity": 17.0, "initial_water_level": 0.0, "max_capacity": 75.0, "population": 38000, "terrain_type": 2},
-    {"id": "R_1_3", "name": "Marathahalli - ORR Tech Corridor", "sector": "East (Outer Ring Road)", "grid_pos": [1, 3], "elevation": 892.0, "drainage_capacity": 14.0, "initial_water_level": 0.0, "max_capacity": 65.0, "population": 68000, "terrain_type": 2},
-    {"id": "R_2_0", "name": "Vijayanagar", "sector": "South-West", "grid_pos": [2, 0], "elevation": 918.0, "drainage_capacity": 28.0, "initial_water_level": 0.0, "max_capacity": 75.0, "population": 29000, "terrain_type": 3},
-    {"id": "R_2_1", "name": "Jayanagar", "sector": "South-Central", "grid_pos": [2, 1], "elevation": 920.0, "drainage_capacity": 30.0, "initial_water_level": 0.0, "max_capacity": 80.0, "population": 41000, "terrain_type": 3},
-    {"id": "R_2_2", "name": "Koramangala 4th Block - Valley", "sector": "South-East (Challaghatta Valley)", "grid_pos": [2, 2], "elevation": 894.0, "drainage_capacity": 12.0, "initial_water_level": 0.0, "max_capacity": 60.0, "population": 47000, "terrain_type": 3},
-    {"id": "R_2_3", "name": "Bellandur Lake Wetland", "sector": "South-East (Bellandur Wetland)", "grid_pos": [2, 3], "elevation": 884.0, "drainage_capacity": 10.0, "initial_water_level": 0.0, "max_capacity": 55.0, "population": 59000, "terrain_type": 3},
-    {"id": "R_3_0", "name": "Banashankari Hills", "sector": "South-West Ridges", "grid_pos": [3, 0], "elevation": 928.0, "drainage_capacity": 35.0, "initial_water_level": 0.0, "max_capacity": 80.0, "population": 33000, "terrain_type": 4},
-    {"id": "R_3_1", "name": "BTM Layout - Madiwala Catchment", "sector": "South Basin", "grid_pos": [3, 1], "elevation": 902.0, "drainage_capacity": 14.0, "initial_water_level": 0.0, "max_capacity": 70.0, "population": 44000, "terrain_type": 4},
-    {"id": "R_3_2", "name": "Silk Board Chokepoint - HSR", "sector": "South-East (Silk Board Bottleneck)", "grid_pos": [3, 2], "elevation": 888.0, "drainage_capacity": 10.0, "initial_water_level": 0.0, "max_capacity": 55.0, "population": 51000, "terrain_type": 4},
-    {"id": "R_3_3", "name": "Varthur Downstream Lake Basin", "sector": "South-East (Varthur Outlet Basin)", "grid_pos": [3, 3], "elevation": 880.0, "drainage_capacity": 8.0, "initial_water_level": 0.0, "max_capacity": 50.0, "population": 38000, "terrain_type": 4}
+    {"id": "R01", "name": "Yeshwanthpur", "sector": "North-West", "grid_pos": [0, 0], "elevation": 935.0, "drainage_capacity": 30.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 45000, "terrain_type": "Highland Ridge"},
+    {"id": "R02", "name": "Hebbal - Sahakar Nagar", "sector": "North", "grid_pos": [0, 1], "elevation": 925.0, "drainage_capacity": 25.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 38000, "terrain_type": "Sloped Plateau"},
+    {"id": "R03", "name": "Manyata Tech Park - Nagavara", "sector": "North-East", "grid_pos": [0, 2], "elevation": 915.0, "drainage_capacity": 20.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 52000, "terrain_type": "Valley Basin"},
+    {"id": "R04", "name": "Hennur - KR Puram Lake Reach", "sector": "East", "grid_pos": [0, 3], "elevation": 905.0, "drainage_capacity": 15.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 31000, "terrain_type": "Wetland Inflow"},
+
+    {"id": "R05", "name": "Rajajinagar", "sector": "West", "grid_pos": [1, 0], "elevation": 930.0, "drainage_capacity": 30.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 48000, "terrain_type": "Urban Ridge"},
+    {"id": "R06", "name": "Majestic", "sector": "Central Corridor", "grid_pos": [1, 1], "elevation": 920.0, "drainage_capacity": 25.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 60000, "terrain_type": "Commercial Core"},
+    {"id": "R07", "name": "Indiranagar - Domlur Valley", "sector": "East Central", "grid_pos": [1, 2], "elevation": 910.0, "drainage_capacity": 20.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 41000, "terrain_type": "Drainage Trough"},
+    {"id": "R08", "name": "Marathahalli - ORR Tech Corridor", "sector": "East Tech Corridor", "grid_pos": [1, 3], "elevation": 898.0, "drainage_capacity": 15.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 55000, "terrain_type": "Low Basin"},
+
+    {"id": "R09", "name": "Vijayanagar", "sector": "South-West", "grid_pos": [2, 0], "elevation": 922.0, "drainage_capacity": 30.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 39000, "terrain_type": "High Plateau"},
+    {"id": "R10", "name": "Jayanagar", "sector": "South Central", "grid_pos": [2, 1], "elevation": 912.0, "drainage_capacity": 25.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 43000, "terrain_type": "Residential Slope"},
+    {"id": "R11", "name": "Koramangala 4th Block - Valley", "sector": "South-East Valley", "grid_pos": [2, 2], "elevation": 892.0, "drainage_capacity": 15.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 47000, "terrain_type": "Critical Depression"},
+    {"id": "R12", "name": "Bellandur Lake Wetland", "sector": "Lake Catchment", "grid_pos": [2, 3], "elevation": 884.0, "drainage_capacity": 10.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 33000, "terrain_type": "Primary Outflow Sink"},
+
+    {"id": "R13", "name": "Banashankari Hills", "sector": "South Ridge", "grid_pos": [3, 0], "elevation": 928.0, "drainage_capacity": 30.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 36000, "terrain_type": "Highland Ridge"},
+    {"id": "R14", "name": "BTM Layout - Madiwala Catchment", "sector": "South Valley", "grid_pos": [3, 1], "elevation": 902.0, "drainage_capacity": 20.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 51000, "terrain_type": "Lake Sink"},
+    {"id": "R15", "name": "Silk Board Chokepoint - HSR", "sector": "South Chokepoint", "grid_pos": [3, 2], "elevation": 888.0, "drainage_capacity": 10.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 58000, "terrain_type": "Major Chokepoint"},
+    {"id": "R16", "name": "Varthur Downstream Lake Basin", "sector": "Eastern Basin", "grid_pos": [3, 3], "elevation": 880.0, "drainage_capacity": 10.0, "initial_water_level": 0.0, "max_capacity": 4500.0, "population": 29000, "terrain_type": "Final Outflow Sink"}
   ]
 }

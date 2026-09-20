@@ -38,10 +38,10 @@ city_data = load_default_city()
 st.sidebar.title("🎛️ FlowShield Control Plane")
 
 st.sidebar.subheader("📐 Grid Topology Configuration")
-all_regions = [Region(**item) for item in city_data["regions"]]
-region_names = [r.name for r in all_regions]
+base_regions = [Region(**item) for item in city_data["regions"]]
+region_names = [r.name for r in base_regions]
 
-st.sidebar.subheader("🌧️ Climate & Rainfall Inputs")
+st.sidebar.subheader("🌧️ Climate & Infrastructure Inputs")
 
 with st.sidebar.form("simulation_parameter_form"):
     global_rain = st.slider("Base Rainfall Intensity (mm/hr)", 0.0, 200.0, 50.0, 5.0)
@@ -55,7 +55,7 @@ with st.sidebar.form("simulation_parameter_form"):
     )
     
     st.markdown("---")
-    st.write("✏️ **Custom Region Overrides:**")
+    st.write("✏️ **Custom Region Rainfall Overrides:**")
     custom_rain_map = {}
     for name in region_names:
         if name in selected_epicenters:
@@ -69,25 +69,52 @@ with st.sidebar.form("simulation_parameter_form"):
             custom_rain_map[name] = 0.0
 
     st.markdown("---")
-    st.subheader("🚧 Infrastructure Status")
-    drainage_failures = st.multiselect("Blocked Drainage Regions (Drainage = 0)", region_names)
+    st.subheader("🏗️ Drainage Infrastructure Upgrades")
+    selected_drainage_zones = st.multiselect(
+        "Select Regions to Deploy / Custom-Limit Drainage Infrastructure:",
+        region_names,
+        default=[]
+    )
     
-    flow_k = 0.15
-    
+    custom_drainage_map = {}
+    if selected_drainage_zones:
+        st.write("🔧 **Set Drainage Throughput Limit (mm/hr):**")
+        for d_name in selected_drainage_zones:
+            # Default lookup to base region drainage capacity
+            base_d = next((r.drainage_capacity for r in base_regions if r.name == d_name), 30.0)
+            custom_drainage_map[d_name] = st.number_input(
+                f"🚰 {d_name} Drainage Capacity (mm/hr)",
+                value=float(base_d),
+                min_value=0.0, max_value=300.0, step=5.0,
+                key=f"drain_{d_name}"
+            )
+            
     apply_changes = st.form_submit_button("✅ Apply Simulation Parameters", use_container_width=True)
 
-start_r_ids = [r.id for r in all_regions if r.name in selected_epicenters]
-failure_r_ids = [r.id for r in all_regions if r.name in drainage_failures]
+# Apply custom drainage capacity overrides to active region objects
+active_regions = []
+for r in base_regions:
+    new_d = custom_drainage_map.get(r.name, r.drainage_capacity)
+    active_regions.append(
+        Region(
+            id=r.id, name=r.name, sector=r.sector, grid_pos=r.grid_pos,
+            elevation=r.elevation, drainage_capacity=new_d,
+            initial_water_level=r.initial_water_level, max_capacity=r.max_capacity,
+            population=r.population, terrain_type=r.terrain_type
+        )
+    )
+
+start_r_ids = [r.id for r in active_regions if r.name in selected_epicenters]
 
 scenario = Scenario(
     rainfall_intensity=global_rain,
     duration_hours=duration,
     rainfall_start_regions=start_r_ids,
     time_step_minutes=time_step,
-    drainage_failure_regions=failure_r_ids
+    drainage_failure_regions=[]
 )
 
-engine = SimulationEngine(all_regions, scenario, flow_k=flow_k, custom_rain_map=custom_rain_map)
+engine = SimulationEngine(active_regions, scenario, flow_k=0.15, custom_rain_map=custom_rain_map)
 sim_result = engine.run()
 
 # Header
@@ -123,7 +150,7 @@ with tab1:
     st.caption(f"Viewing: ⚙️ **SIMULATION STATE at t={current_t:.2f} hrs**")
     
     curr_statuses = []
-    for idx in range(len(all_regions)):
+    for idx in range(len(active_regions)):
         w_lvl = sim_result["water_levels"][selected_step, idx]
         m_cap = sim_result["capacities"][idx]
         curr_statuses.append(classify_status(w_lvl, m_cap))
@@ -137,7 +164,7 @@ with tab1:
     avg_water_lvl = float(np.mean(sim_result["water_levels"][selected_step]))
     
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("🚨 CRITICAL FLOOD ZONES", f"{num_critical}/{len(all_regions)}", "Ratio ≥ 90% capacity")
+    k1.metric("🚨 CRITICAL FLOOD ZONES", f"{num_critical}/{len(active_regions)}", "Ratio ≥ 90% capacity")
     k2.metric("⚠️ WARNING CATCHMENTS", f"{num_warning}", "Ratio 60% - 89.9%")
     k3.metric("🟢 SAFE RESILIENT ZONES", f"{num_safe}", "Water level < 60%")
     k4.metric("💧 AVG WATER ACCUMULATION", f"{avg_water_lvl:.1f} mm", "Mean basin depth")
@@ -175,7 +202,6 @@ with tab1:
         cap = sim_result["capacities"][idx]
         rate = sim_result["rates_h"][selected_step, idx]
         
-        # Calculate time remaining strictly to reach Critical status (90%)
         eta = calculate_time_to_critical(lvl, cap, rate)
         if eta == 0.0:
             eta_str = "0.0 hrs (Already Critical)"
@@ -189,7 +215,7 @@ with tab1:
             "Region Name": r.name,
             "Sector": r.sector,
             "Elevation (m)": r.elevation,
-            "Drainage (mm/hr)": r.drainage_capacity,
+            "Drainage Capacity (mm/hr)": r.drainage_capacity,
             "Rainfall (mm/hr)": f"{custom_rain_map.get(r.name, 0.0):.0f}",
             "Water Level (mm)": f"{lvl:.1f} / {cap:.0f}",
             "Status": curr_statuses[idx],
@@ -205,11 +231,11 @@ with tab2:
     budget = st.slider("Total Available Drainage Upgrade Budget (mm/hr)", 10.0, 200.0, 50.0)
     
     if st.button("🚀 Run Optimization Solver"):
-        opt_res = optimize_drainage_allocation(all_regions, scenario, budget_mm_h=budget)
+        opt_res = optimize_drainage_allocation(active_regions, scenario, budget_mm_h=budget)
         st.success("Optimization Complete!")
         
         opt_rows = []
-        for r in all_regions:
+        for r in active_regions:
             alloc = opt_res["allocations"][r.id]
             if alloc > 0:
                 opt_rows.append({

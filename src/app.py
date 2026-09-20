@@ -9,7 +9,7 @@ import numpy as np
 from src.models import Region, Scenario
 from src.simulation import SimulationEngine, optimize_drainage_allocation
 from src.visualization import render_grid_heatmap, render_water_level_chart
-from src.classification import calculate_time_to_critical
+from src.classification import calculate_time_to_critical, classify_status
 
 st.set_page_config(page_title="FLOWSHIELD — Hydrodynamic Early Warning Dashboard", layout="wide")
 
@@ -110,7 +110,16 @@ with tab1:
     
     st.caption(f"Viewing: ⚙️ **SIMULATION STATE at t={current_t:.2f} hrs**")
     
-    curr_statuses = sim_result["statuses"][selected_step]
+    # Strictly compute live classification status for current time step
+    curr_statuses = []
+    for idx in range(len(all_regions)):
+        w_lvl = sim_result["water_levels"][selected_step, idx]
+        m_cap = sim_result["capacities"][idx]
+        curr_statuses.append(classify_status(w_lvl, m_cap))
+    
+    # Store synchronized statuses into sim_result for heatmap rendering
+    sim_result["statuses"][selected_step] = curr_statuses
+    
     num_critical = curr_statuses.count("Critical")
     num_warning = curr_statuses.count("Warning")
     num_safe = curr_statuses.count("Safe")
@@ -125,20 +134,6 @@ with tab1:
     
     st.markdown("---")
     
-    st.subheader("🗺️ Multi-Layer Grid Visualization")
-    
-    if "Status" in layer_mode if 'layer_mode' in locals() else True:
-        st.markdown("""
-        <div class="legend-card">
-            <b style="color: #58A6FF;">🎨 Flood Risk Status Color Legend:</b>
-            <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap; font-size: 13px;">
-                <div><span style="color: #2ECC71; font-weight: bold;">🟢 Green (Safe)</span>: Water Level &lt; 60% Capacity</div>
-                <div><span style="color: #F39C12; font-weight: bold;">🟡 Yellow / Orange (Warning)</span>: Water Level 60% – 90% Capacity</div>
-                <div><span style="color: #E74C3C; font-weight: bold;">🔴 Red (Critical)</span>: Water Level ≥ 90% Capacity (Flooding)</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
     layer_mode = st.radio(
         "Select Active Grid Layer:", 
         ["🚨 Flood Early Warning Status (Safe/Warning/Critical)", "💧 Water Accumulation Level (mm)", "⛰️ Terrain Elevation Topography (m)", "🚰 Storm Drainage Capacity (mm/hr)"], 

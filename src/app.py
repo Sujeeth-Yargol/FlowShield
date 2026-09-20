@@ -37,21 +37,62 @@ city_data = load_default_city()
 
 st.sidebar.title("🎛️ FlowShield Control Plane")
 
-st.sidebar.subheader("📐 Grid Topology Configuration")
 base_regions = [Region(**item) for item in city_data["regions"]]
 region_names = [r.name for r in base_regions]
 
+# --- PRESET LOADER LOGIC ---
+st.sidebar.subheader("🎬 Demo Quick-Presets")
+preset_choice = st.sidebar.selectbox(
+    "Load Scenario Preset:",
+    [
+        "Custom Manual Inputs",
+        "🎯 Preset 1: Balanced City Risk (🟢 Green, 🟡 Yellow, 🔴 Red)",
+        "🌧️ Preset 2: Severe Monsoonal Downpour (High Critical Risk)",
+        "🛡️ Preset 3: Post-Infrastructure Upgrade (Resilient Basin)"
+    ]
+)
+
+# Preset Defaults
+default_rain = 50.0
+default_epicenters = region_names[:6]
+default_drainage_zones = []
+default_drainage_values = {}
+
+if preset_choice == "🎯 Preset 1: Balanced City Risk (🟢 Green, 🟡 Yellow, 🔴 Red)":
+    default_rain = 45.0
+    default_epicenters = ["Yeshwanthpur", "Hebbal - Sahakar Nagar", "Rajajinagar", "Indiranagar - Domlur Valley", "Jayanagar"]
+    default_drainage_zones = ["Yeshwanthpur", "Majestic"]
+    default_drainage_values = {"Yeshwanthpur": 120.0, "Majestic": 100.0}
+
+elif preset_choice == "🌧️ Preset 2: Severe Monsoonal Downpour (High Critical Risk)":
+    default_rain = 90.0
+    default_epicenters = region_names[:12]
+    default_drainage_zones = []
+    default_drainage_values = {}
+
+elif preset_choice == "🛡️ Preset 3: Post-Infrastructure Upgrade (Resilient Basin)":
+    default_rain = 50.0
+    default_epicenters = region_names[:8]
+    default_drainage_zones = ["Indiranagar - Domlur Valley", "Jayanagar", "Koramangala 4th Block - Valley", "Bellandur Lake Wetland"]
+    default_drainage_values = {
+        "Indiranagar - Domlur Valley": 180.0,
+        "Jayanagar": 150.0,
+        "Koramangala 4th Block - Valley": 200.0,
+        "Bellandur Lake Wetland": 220.0
+    }
+
+st.sidebar.markdown("---")
 st.sidebar.subheader("🌧️ Climate & Infrastructure Inputs")
 
 with st.sidebar.form("simulation_parameter_form"):
-    global_rain = st.slider("Base Rainfall Intensity (mm/hr)", 0.0, 200.0, 50.0, 5.0)
+    global_rain = st.slider("Base Rainfall Intensity (mm/hr)", 0.0, 200.0, float(default_rain), 5.0)
     duration = st.number_input("Duration (Hours)", value=6.0, step=1.0)
     time_step = st.number_input("Time Step (Mins)", value=10.0, step=5.0)
 
     selected_epicenters = st.multiselect(
         "Target Rainfall Regions (Grid Epicenters):", 
         region_names, 
-        default=region_names[:6]
+        default=default_epicenters
     )
     
     st.markdown("---")
@@ -73,15 +114,14 @@ with st.sidebar.form("simulation_parameter_form"):
     selected_drainage_zones = st.multiselect(
         "Select Regions to Deploy / Custom-Limit Drainage Infrastructure:",
         region_names,
-        default=[]
+        default=default_drainage_zones
     )
     
     custom_drainage_map = {}
     if selected_drainage_zones:
         st.write("🔧 **Set Drainage Throughput Limit (mm/hr):**")
         for d_name in selected_drainage_zones:
-            # Default lookup to base region drainage capacity
-            base_d = next((r.drainage_capacity for r in base_regions if r.name == d_name), 30.0)
+            base_d = default_drainage_values.get(d_name, next((r.drainage_capacity for r in base_regions if r.name == d_name), 30.0))
             custom_drainage_map[d_name] = st.number_input(
                 f"🚰 {d_name} Drainage Capacity (mm/hr)",
                 value=float(base_d),
@@ -91,7 +131,6 @@ with st.sidebar.form("simulation_parameter_form"):
             
     apply_changes = st.form_submit_button("✅ Apply Simulation Parameters", use_container_width=True)
 
-# Apply custom drainage capacity overrides to active region objects
 active_regions = []
 for r in base_regions:
     new_d = custom_drainage_map.get(r.name, r.drainage_capacity)

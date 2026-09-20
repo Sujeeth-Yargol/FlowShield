@@ -46,55 +46,53 @@ preset_choice = st.sidebar.selectbox(
     "Load Scenario Preset:",
     [
         "Custom Manual Inputs",
-        "🎯 Preset 1: Multi-Risk City (5 Green, 6 Yellow, 5 Red)",
-        "🌧️ Preset 2: Severe Monsoonal Crisis (2 Green, 5 Yellow, 9 Red)",
-        "🛡️ Preset 3: Infrastructure Resilient Basin (10 Green, 4 Yellow, 2 Red)"
+        "🎯 Preset 1: Multi-Risk City (Green, Yellow & Red Mix)",
+        "🌧️ Preset 2: Severe Monsoonal Crisis (High Critical Risk)",
+        "🛡️ Preset 3: Infrastructure Resilient Basin (Mostly Safe)"
     ]
 )
 
-# Preset Variable Defaults
-default_rain = 50.0
+# Preset Default Variables
+default_rain = 40.0
 default_epicenters = region_names
 default_rain_map = {}
 default_drainage_zones = []
 default_drainage_values = {}
 
-if preset_choice == "🎯 Preset 1: Multi-Risk City (5 Green, 6 Yellow, 5 Red)":
-    default_rain = 50.0
+if preset_choice == "🎯 Preset 1: Multi-Risk City (Green, Yellow & Red Mix)":
+    default_rain = 40.0
     default_epicenters = region_names
     default_rain_map = {
-        "Yeshwanthpur": 20.0, "Hebbal - Sahakar Nagar": 45.0, "Manyata Tech Park - Nagavara": 30.0, "Hennur - KR Puram Lake Reach": 50.0,
-        "Rajajinagar": 25.0, "Majestic": 35.0, "Indiranagar - Domlur Valley": 60.0, "Marathahalli - ORR Tech Corridor": 40.0,
-        "Vijayanagar": 15.0, "Jayanagar": 55.0, "Koramangala 4th Block - Valley": 65.0, "Bellandur Lake Wetland": 70.0,
-        "Banashankari Hills": 20.0, "BTM Layout - Madiwala Catchment": 45.0, "Silk Board Chokepoint - HSR": 65.0, "Varthur Downstream Lake Basin": 50.0
+        "Yeshwanthpur": 10.0, "Hebbal - Sahakar Nagar": 35.0, "Manyata Tech Park - Nagavara": 40.0, "Hennur - KR Puram Lake Reach": 45.0,
+        "Rajajinagar": 15.0, "Majestic": 25.0, "Indiranagar - Domlur Valley": 50.0, "Marathahalli - ORR Tech Corridor": 55.0,
+        "Vijayanagar": 15.0, "Jayanagar": 30.0, "Koramangala 4th Block - Valley": 60.0, "Bellandur Lake Wetland": 65.0,
+        "Banashankari Hills": 15.0, "BTM Layout - Madiwala Catchment": 35.0, "Silk Board Chokepoint - HSR": 60.0, "Varthur Downstream Lake Basin": 65.0
     }
-    default_drainage_zones = ["Yeshwanthpur", "Majestic", "Vijayanagar"]
-    default_drainage_values = {"Yeshwanthpur": 80.0, "Majestic": 70.0, "Vijayanagar": 80.0}
+    default_drainage_zones = ["Yeshwanthpur", "Majestic"]
+    default_drainage_values = {"Yeshwanthpur": 60.0, "Majestic": 50.0}
 
-elif preset_choice == "🌧️ Preset 2: Severe Monsoonal Crisis (2 Green, 5 Yellow, 9 Red)":
-    default_rain = 85.0
+elif preset_choice == "🌧️ Preset 2: Severe Monsoonal Crisis (High Critical Risk)":
+    default_rain = 80.0
     default_epicenters = region_names
-    default_rain_map = {name: 85.0 for name in region_names}
-    default_rain_map["Yeshwanthpur"] = 30.0
-    default_rain_map["Banashankari Hills"] = 30.0
+    default_rain_map = {name: 80.0 for name in region_names}
     default_drainage_zones = []
     default_drainage_values = {}
 
-elif preset_choice == "🛡️ Preset 3: Infrastructure Resilient Basin (10 Green, 4 Yellow, 2 Red)":
-    default_rain = 40.0
+elif preset_choice == "🛡️ Preset 3: Infrastructure Resilient Basin (Mostly Safe)":
+    default_rain = 35.0
     default_epicenters = region_names
-    default_rain_map = {name: 40.0 for name in region_names}
+    default_rain_map = {name: 35.0 for name in region_names}
     default_drainage_zones = [
         "Hebbal - Sahakar Nagar", "Indiranagar - Domlur Valley", "Jayanagar", 
         "Koramangala 4th Block - Valley", "Bellandur Lake Wetland", "Silk Board Chokepoint - HSR"
     ]
     default_drainage_values = {
-        "Hebbal - Sahakar Nagar": 120.0,
+        "Hebbal - Sahakar Nagar": 100.0,
         "Indiranagar - Domlur Valley": 150.0,
-        "Jayanagar": 120.0,
+        "Jayanagar": 100.0,
         "Koramangala 4th Block - Valley": 180.0,
         "Bellandur Lake Wetland": 200.0,
-        "Silk Board Chokepoint - HSR": 160.0
+        "Silk Board Chokepoint - HSR": 150.0
     }
 
 st.sidebar.markdown("---")
@@ -231,9 +229,9 @@ with tab1:
     <div class="legend-card">
         <b style="color: #58A6FF;">🎨 Flood Risk Classification Legend:</b>
         <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap; font-size: 13px;">
-            <div><span style="color: #2ECC71; font-weight: bold;">🟢 Green (Safe)</span>: Water Level &lt; 60% Capacity</div>
-            <div><span style="color: #F39C12; font-weight: bold;">🟡 Yellow / Orange (Warning)</span>: Water Level 60% – 89.9% Capacity</div>
-            <div><span style="color: #E74C3C; font-weight: bold;">🔴 Red (Critical)</span>: Water Level ≥ 90% Capacity (Flooding)</div>
+            <div><span style="color: #2ECC71; font-weight: bold;">🟢 Green (Safe)</span>: Water Level &lt; 2000 mm</div>
+            <div><span style="color: #F39C12; font-weight: bold;">🟡 Yellow / Orange (Warning)</span>: Water Level 2000 mm – 3800 mm</div>
+            <div><span style="color: #E74C3C; font-weight: bold;">🔴 Red (Critical)</span>: Water Level ≥ 3800 mm</div>
         </div>
     </div>
     """, unsafe_allow_html=True)

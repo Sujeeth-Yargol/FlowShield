@@ -31,7 +31,6 @@ city_data = load_default_city()
 
 st.sidebar.title("🎛️ Simulation Control Plane")
 
-# Grid Dimensions Selector
 st.sidebar.subheader("📐 Grid Topology Configuration")
 grid_mode = st.sidebar.radio("Select Grid Size Preset", ["4x4 Bangalore Core (16 Zones)", "Custom Subset (e.g. 2x2, 2x3, 3x3)"])
 
@@ -50,10 +49,9 @@ rain_intensity = st.sidebar.slider("Rainfall Intensity (mm/hr)", 0.0, 150.0, 45.
 duration = st.sidebar.number_input("Duration (Hours)", value=6.0, step=1.0)
 time_step = st.sidebar.number_input("Time Step (Mins)", value=10.0, step=5.0)
 
-st.sidebar.subheader("🎯 Target Rainfall Epicenters (Mouse / Checkbox Selection)")
+st.sidebar.subheader("🎯 Target Rainfall Epicenters")
 region_names = [r.name for r in regions_list]
 
-# Interactive Multi-Select / Checkbox Selector
 selected_epicenters = st.sidebar.multiselect(
     "Select Grid Cells receiving active rainfall:", 
     region_names, 
@@ -78,7 +76,6 @@ scenario = Scenario(
 engine = SimulationEngine(regions_list, scenario, flow_k=flow_k)
 sim_result = engine.run()
 
-# Header
 st.markdown("""
 <div class="header-card">
     <div style="display: flex; justify-content: space-between; align-items: center;">

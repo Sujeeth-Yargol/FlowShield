@@ -29,66 +29,29 @@ def load_default_city():
 
 city_data = load_default_city()
 
-st.sidebar.title("🎛️ Simulation Control Plane")
+st.sidebar.title("🎛️ FlowShield Control Plane")
 
-st.sidebar.subheader("📐 Grid Topology Configuration")
-grid_mode = st.sidebar.radio("Select Grid Size Preset", ["4x4 Bangalore Core (16 Zones)", "Custom Subset (e.g. 2x2, 2x3, 3x3)"])
-
+st.sidebar.subheader("📐 Grid & Topology Configuration")
 all_regions = [Region(**item) for item in city_data["regions"]]
+region_names = [r.name for r in all_regions]
 
-if "Custom Subset" in grid_mode:
-    rows_cnt = st.sidebar.slider("Grid Rows (Y)", 1, 4, 2)
-    cols_cnt = st.sidebar.slider("Grid Columns (X)", 1, 4, 3)
-    regions_list = [r for r in all_regions if r.grid_pos[0] < rows_cnt and r.grid_pos[1] < cols_cnt]
-else:
-    regions_list = all_regions
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("🌧️ Climate & Rainfall Setup")
-
-col_rain1, col_rain2 = st.sidebar.columns([1, 1])
-with col_rain1:
-    global_rain = st.number_input("Base Rainfall (mm/hr)", min_value=0.0, max_value=200.0, value=45.0, step=1.0)
-with col_rain2:
-    st.write("")
-    st.write("")
-    enable_box_select = st.button("🖱️ Box Select Grids")
-
+st.sidebar.subheader("🌧️ Climate & Rainfall Inputs")
+global_rain = st.sidebar.slider("Base Rainfall Intensity (mm/hr)", 0.0, 200.0, 50.0, 5.0)
 duration = st.sidebar.number_input("Duration (Hours)", value=6.0, step=1.0)
 time_step = st.sidebar.number_input("Time Step (Mins)", value=10.0, step=5.0)
 
-region_names = [r.name for r in regions_list]
-
-if "custom_rainfall_map" not in st.session_state:
-    st.session_state["custom_rainfall_map"] = {r.name: global_rain for r in regions_list}
-
-if "prev_base_rain" not in st.session_state:
-    st.session_state["prev_base_rain"] = global_rain
-
-# Sync base change if altered
-if st.session_state["prev_base_rain"] != global_rain:
-    for r in regions_list:
-        st.session_state["custom_rainfall_map"][r.name] = global_rain
-    st.session_state["prev_base_rain"] = global_rain
-
-if st.sidebar.button("🔄 Reset All Grids to Base"):
-    for r in regions_list:
-        st.session_state["custom_rainfall_map"][r.name] = global_rain
-    st.rerun()
-
 selected_epicenters = st.sidebar.multiselect(
-    "Active Rainfall Regions:", 
+    "Target Rainfall Regions (Grid Epicenters):", 
     region_names, 
-    default=region_names
+    default=region_names[:4]
 )
+start_r_ids = [r.id for r in all_regions if r.name in selected_epicenters]
 
-start_r_ids = [r.id for r in regions_list if r.name in selected_epicenters]
+st.sidebar.subheader("🚧 Drainage Failure / Blocked Channels")
+drainage_failures = st.sidebar.multiselect("Blocked Drainage Regions (Drainage = 0)", region_names)
+failure_r_ids = [r.id for r in all_regions if r.name in drainage_failures]
 
-st.sidebar.subheader("🚧 Infrastructure Status")
-drainage_failures = st.sidebar.multiselect("Drainage Failure Regions (Drainage = 0)", region_names)
-failure_r_ids = [r.id for r in regions_list if r.name in drainage_failures]
-
-flow_k = st.sidebar.slider("Inter-region Flow Coefficient (k)", 0.05, 0.50, 0.15)
+flow_k = st.sidebar.slider("Hydraulic Flow Coefficient (k)", 0.05, 0.50, 0.15)
 
 scenario = Scenario(
     rainfall_intensity=global_rain,
@@ -98,8 +61,7 @@ scenario = Scenario(
     drainage_failure_regions=failure_r_ids
 )
 
-# Pass custom_rainfall_map directly into the hydrodynamic solver engine
-engine = SimulationEngine(regions_list, scenario, flow_k=flow_k, custom_rain_map=st.session_state["custom_rainfall_map"])
+engine = SimulationEngine(all_regions, scenario, flow_k=flow_k)
 sim_result = engine.run()
 
 # Header
@@ -118,11 +80,10 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3 = st.tabs([
     "📊 Real-Time Flood Intelligence", 
     "🧮 Mathematical Optimization Studio", 
-    "🌊 Inter-Region Hydraulic Vectors", 
-    "📜 Export & Documentation"
+    "🌊 Water Level Progression Line Graph"
 ])
 
 with tab1:
@@ -132,7 +93,7 @@ with tab1:
     selected_step = st.slider("Scrub Simulation Time (Hours : Minutes)", 0, time_steps - 1, time_steps - 1)
     current_t = sim_result["times_h"][selected_step]
     
-    st.caption(f"Viewing: ⚙️ **FINAL FLOOD STATE at t={current_t:.2f} hrs**")
+    st.caption(f"Viewing: ⚙️ **SIMULATION STATE at t={current_t:.2f} hrs**")
     
     curr_statuses = sim_result["statuses"][selected_step]
     num_critical = curr_statuses.count("Critical")
@@ -144,48 +105,22 @@ with tab1:
     )
     
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("🚨 CRITICAL FLOOD ZONES", f"{num_critical}/{len(regions_list)}", "Ratio ≥ 90% capacity")
+    k1.metric("🚨 CRITICAL FLOOD ZONES", f"{num_critical}/{len(all_regions)}", "Ratio ≥ 90% capacity")
     k2.metric("⚠️ WARNING CATCHMENTS", f"{num_warning}", "Ratio 60% - 90%")
     k3.metric("🟢 SAFE RESILIENT ZONES", f"{num_safe}", "Water level < 60%")
     k4.metric("👥 AFFECTED POPULATION", f"{affected_pop:,}", "Citizens in Warning or Critical")
     
     st.markdown("---")
     
-    st.subheader("🗺️ Multi-Layer Interactive Grid Visualization")
+    st.subheader("🗺️ Multi-Layer Grid Visualization")
     layer_mode = st.radio(
         "Select Active Grid Layer:", 
         ["🚨 Flood Early Warning Status (Safe/Warning/Critical)", "💧 Water Accumulation Level (mm)", "⛰️ Terrain Elevation Topography (m)", "🚰 Storm Drainage Capacity (mm/hr)"], 
         horizontal=True
     )
     
-    drag_mode = "select" if enable_box_select else "pan"
-    fig_map = render_grid_heatmap(sim_result, selected_step, layer_mode, active_dragmode=drag_mode, custom_rain_map=st.session_state["custom_rainfall_map"])
-    
-    event = st.plotly_chart(fig_map, use_container_width=True, on_select="rerun", selection_mode="points")
-    
-    if event and "selection" in event and event["selection"]["points"]:
-        selected_points = event["selection"]["points"]
-        boxed_regions = []
-        for pt in selected_points:
-            r_idx, c_idx = pt.get("y"), pt.get("x")
-            match_r = next((r for r in regions_list if r.grid_pos == (r_idx, c_idx)), None)
-            if match_r:
-                boxed_regions.append(match_r.name)
-                
-        if boxed_regions:
-            st.success(f"📌 **Box Selected Regions ({len(boxed_regions)}):** {', '.join(boxed_regions)}")
-            
-            first_val = st.session_state["custom_rainfall_map"].get(boxed_regions[0], global_rain)
-            custom_box_rain = st.number_input(
-                f"🌧️ Apply Custom Rainfall Intensity for Selected Grids Only ({', '.join(boxed_regions)}):",
-                value=float(first_val), min_value=0.0, max_value=200.0, key="box_rain_input"
-            )
-            
-            apply_btn = st.button("✅ Apply to Selected Box Grids")
-            if apply_btn:
-                for name in boxed_regions:
-                    st.session_state["custom_rainfall_map"][name] = custom_box_rain
-                st.rerun()
+    fig_map = render_grid_heatmap(sim_result, selected_step, layer_mode)
+    st.plotly_chart(fig_map, use_container_width=True)
 
     st.markdown("---")
     
@@ -206,7 +141,6 @@ with tab1:
             "Sector": r.sector,
             "Elevation (m)": r.elevation,
             "Drainage (mm/hr)": r.drainage_capacity,
-            "Rainfall Intensity (mm/hr)": f"{st.session_state['custom_rainfall_map'].get(r.name, global_rain):.0f}",
             "Water Level (mm)": f"{lvl:.1f} / {cap:.0f}",
             "Capacity Fill": round(lvl / cap, 3),
             "Status": curr_statuses[idx],
@@ -217,15 +151,15 @@ with tab1:
     st.dataframe(df_reg, use_container_width=True)
 
 with tab2:
-    st.subheader("🧮 Mathematical Optimization Engine")
+    st.subheader("🧮 Mathematical Drainage Optimization Solver")
     budget = st.slider("Total Available Drainage Upgrade Budget (mm/hr)", 10.0, 200.0, 50.0)
     
-    if st.button("🚀 Run Gradient Descent Optimization Solver"):
-        opt_res = optimize_drainage_allocation(regions_list, scenario, budget_mm_h=budget)
+    if st.button("🚀 Run Optimization Solver"):
+        opt_res = optimize_drainage_allocation(all_regions, scenario, budget_mm_h=budget)
         st.success("Optimization Complete!")
         
         opt_rows = []
-        for r in regions_list:
+        for r in all_regions:
             alloc = opt_res["allocations"][r.id]
             if alloc > 0:
                 opt_rows.append({
@@ -237,5 +171,8 @@ with tab2:
         
         if opt_rows:
             st.dataframe(pd.DataFrame(opt_rows), use_container_width=True)
-        else:
-            st.info("Current drainage infrastructure is sufficient for this scenario!")
+
+with tab3:
+    st.subheader("🌊 Temporal Flood Progression Rates")
+    fig_line = render_water_level_chart(sim_result)
+    st.plotly_chart(fig_line, use_container_width=True)

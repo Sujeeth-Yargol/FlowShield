@@ -71,9 +71,10 @@ with st.sidebar.form("simulation_parameter_form"):
     st.markdown("---")
     st.subheader("🚧 Infrastructure Status")
     drainage_failures = st.multiselect("Blocked Drainage Regions (Drainage = 0)", region_names)
-    flow_k = st.slider("Hydraulic Flow Coefficient (k)", 0.05, 0.50, 0.15)
     
-    # Explicit Apply Changes Button
+    # FIXED CONSTANT: Flow coefficient fixed to 0.15 (physical grid constant)
+    flow_k = 0.15
+    
     apply_changes = st.form_submit_button("✅ Apply Simulation Parameters", use_container_width=True)
 
 start_r_ids = [r.id for r in all_regions if r.name in selected_epicenters]

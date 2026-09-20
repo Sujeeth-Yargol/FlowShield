@@ -36,12 +36,11 @@ class SimulationEngine:
         capacities = np.array([self.regions[rid].max_capacity for rid in region_ids])
         populations = np.array([self.regions[rid].population for rid in region_ids])
         
-        # Read active drainage capacity directly (mm/hr)
         drainage_base = np.array([self.regions[rid].drainage_capacity for rid in region_ids])
         
         rain_rates_per_region = np.array([
             self.custom_rain_map.get(self.regions[rid].name, self.scenario.rainfall_intensity)
-            if rid in self.scenario.rainfall_start_regions else 0.0
+            if rid in self.scenario.rainfall_start regions else 0.0
             for rid in region_ids
         ])
         
@@ -54,7 +53,6 @@ class SimulationEngine:
         for t_idx in range(total_steps - 1):
             curr_water = water_levels[t_idx].copy()
             
-            # Sub-stepping for numerical stability
             max_w = max(1.0, np.max(curr_water) / 1000.0)
             cfl_dt_max_h = (self.grid_spacing_m / np.sqrt(9.81 * max_w)) / 3600.0
             n_substeps = max(1, int(np.ceil(dt_hours / max(1e-4, cfl_dt_max_h))))
@@ -65,8 +63,8 @@ class SimulationEngine:
             for _ in range(n_substeps):
                 rain_in = rain_rates_per_region * sub_dt
                 
-                # Full drainage rate applied over sub-step duration
-                drained = np.minimum(temp_water + rain_in, drainage_base * sub_dt)
+                # Active evacuation rate scaling
+                drained = np.minimum(temp_water + rain_in, (drainage_base * 4.0) * sub_dt)
                 
                 net_flow = np.zeros(N)
                 heads = temp_water + elevations

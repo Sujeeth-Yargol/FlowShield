@@ -20,6 +20,7 @@ st.markdown("""
     .critical-box { background: #3C1E1E; border: 1px solid #F85149; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
     .warning-box { background: #382C1E; border: 1px solid #D29922; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
     .safe-box { background: #1E3A2B; border: 1px solid #2EA043; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+    .legend-card { background: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 15px; margin-top: 10px; margin-bottom: 15px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -118,7 +119,6 @@ with tab1:
         sim_result["populations"][i] for i, s in enumerate(curr_statuses) if s in ["Warning", "Critical"]
     )
     
-    # Feature 2: Economic Damage Estimator Index ( per citizen in critical zone)
     economic_loss = sum(
         sim_result["populations"][i] * (sim_result["water_levels"][selected_step, i] / 1000.0) * 12.5
         for i, s in enumerate(curr_statuses) if s == "Critical"
@@ -133,6 +133,20 @@ with tab1:
     st.markdown("---")
     
     st.subheader("🗺️ Multi-Layer Grid Visualization")
+    
+    # Explicit Color Legend Box
+    st.markdown("""
+    <div class="legend-card">
+        <b style="color: #58A6FF;">🎨 Flood Risk Classification Color Legend:</b>
+        <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap; font-size: 13px;">
+            <div><span style="color: #2ECC71; font-weight: bold;">🟢 Green (Safe)</span>: Water Level &lt; 60% Capacity</div>
+            <div><span style="color: #F39C12; font-weight: bold;">🟡 Yellow / Orange (Warning)</span>: Water Level 60% – 90% Capacity</div>
+            <div><span style="color: #E74C3C; font-weight: bold;">🔴 Red (Critical)</span>: Water Level ≥ 90% Capacity (Flooding)</div>
+            <div><span style="color: #900C3F; font-weight: bold;">🟣 Maroon (Severe)</span>: &gt; 100% Overflow Crisis</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     layer_mode = st.radio(
         "Select Active Grid Layer:", 
         ["🚨 Flood Early Warning Status (Safe/Warning/Critical)", "💧 Water Accumulation Level (mm)", "⛰️ Terrain Elevation Topography (m)", "🚰 Storm Drainage Capacity (mm/hr)"], 
@@ -155,7 +169,6 @@ with tab1:
         eta = calculate_time_to_critical(lvl, cap, rate)
         eta_str = f"{eta:.1f} hrs" if eta is not None and eta > 0 else ("0.0 (Critical)" if eta == 0.0 else "Not projected")
         
-        # Feature 1: Recession ETA calculation
         drain_rate = r.drainage_capacity
         recession_hours = (lvl - 0.6 * cap) / drain_rate if lvl > 0.6 * cap and drain_rate > 0 else 0.0
         

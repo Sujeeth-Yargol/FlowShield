@@ -4,12 +4,13 @@ from src.models import Region, Scenario
 from src.classification import classify_status
 
 class SimulationEngine:
-    def __init__(self, regions: List[Region], scenario: Scenario, flow_k: float = 0.15, roughness_n: float = 0.025):
+    def __init__(self, regions: List[Region], scenario: Scenario, flow_k: float = 0.15, roughness_n: float = 0.025, custom_rain_map: Dict[str, float] = None):
         self.regions = {r.id: r for r in regions}
         self.scenario = scenario
         self.flow_k = flow_k
         self.roughness_n = roughness_n
         self.grid_spacing_m = 1000.0
+        self.custom_rain_map = custom_rain_map or {}
         self._build_grid_connectivity()
         
     def _build_grid_connectivity(self):
@@ -39,6 +40,13 @@ class SimulationEngine:
             for rid in region_ids
         ])
         
+        # Build individual rainfall rates vector (mm/hr) per region node
+        rain_rates_per_region = np.array([
+            self.custom_rain_map.get(self.regions[rid].name, self.scenario.rainfall_intensity)
+            if rid in self.scenario.rainfall_start_regions else 0.0
+            for rid in region_ids
+        ])
+        
         water_levels = np.zeros((total_steps, N))
         water_levels[0] = np.array([self.regions[rid].initial_water_level for rid in region_ids])
         rates_h = np.zeros((total_steps, N))
@@ -46,8 +54,6 @@ class SimulationEngine:
         blocked_set = set(self.scenario.blocked_channels) | set((b, a) for a, b in self.scenario.blocked_channels)
 
         for t_idx in range(total_steps - 1):
-            current_t = times_h[t_idx]
-            rain_rate = self.scenario.get_rainfall_at_time(current_t)
             curr_water = water_levels[t_idx].copy()
             
             max_w = max(1.0, np.max(curr_water) / 1000.0)
@@ -58,11 +64,7 @@ class SimulationEngine:
             temp_water = curr_water.copy()
             
             for _ in range(n_substeps):
-                rain_in = np.zeros(N)
-                for rid in self.scenario.rainfall_start_regions:
-                    if rid in id_to_idx:
-                        rain_in[id_to_idx[rid]] = rain_rate * sub_dt
-                        
+                rain_in = rain_rates_per_region * sub_dt
                 drained = np.minimum(temp_water, drainage_base * sub_dt)
                 net_flow = np.zeros(N)
                 heads = temp_water + elevations

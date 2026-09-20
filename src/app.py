@@ -59,13 +59,22 @@ time_step = st.sidebar.number_input("Time Step (Mins)", value=10.0, step=5.0)
 
 region_names = [r.name for r in regions_list]
 
-# Persistent per-grid rainfall state
 if "custom_rainfall_map" not in st.session_state:
     st.session_state["custom_rainfall_map"] = {r.name: global_rain for r in regions_list}
 
-# Reset button in sidebar if user wants to set all grids back to base
-if st.sidebar.button("🔄 Reset All Grids to Base Rainfall"):
-    st.session_state["custom_rainfall_map"] = {r.name: global_rain for r in regions_list}
+if "prev_base_rain" not in st.session_state:
+    st.session_state["prev_base_rain"] = global_rain
+
+# Sync base change if altered
+if st.session_state["prev_base_rain"] != global_rain:
+    for r in regions_list:
+        st.session_state["custom_rainfall_map"][r.name] = global_rain
+    st.session_state["prev_base_rain"] = global_rain
+
+if st.sidebar.button("🔄 Reset All Grids to Base"):
+    for r in regions_list:
+        st.session_state["custom_rainfall_map"][r.name] = global_rain
+    st.rerun()
 
 selected_epicenters = st.sidebar.multiselect(
     "Active Rainfall Regions:", 
@@ -89,7 +98,8 @@ scenario = Scenario(
     drainage_failure_regions=failure_r_ids
 )
 
-engine = SimulationEngine(regions_list, scenario, flow_k=flow_k)
+# Pass custom_rainfall_map directly into the hydrodynamic solver engine
+engine = SimulationEngine(regions_list, scenario, flow_k=flow_k, custom_rain_map=st.session_state["custom_rainfall_map"])
 sim_result = engine.run()
 
 # Header
@@ -165,15 +175,17 @@ with tab1:
         if boxed_regions:
             st.success(f"📌 **Box Selected Regions ({len(boxed_regions)}):** {', '.join(boxed_regions)}")
             
-            first_region_val = st.session_state["custom_rainfall_map"].get(boxed_regions[0], global_rain)
+            first_val = st.session_state["custom_rainfall_map"].get(boxed_regions[0], global_rain)
             custom_box_rain = st.number_input(
                 f"🌧️ Apply Custom Rainfall Intensity for Selected Grids Only ({', '.join(boxed_regions)}):",
-                value=float(first_region_val), min_value=0.0, max_value=200.0, key="box_rain_input"
+                value=float(first_val), min_value=0.0, max_value=200.0, key="box_rain_input"
             )
             
-            # Apply update STRICTLY to boxed regions
-            for name in boxed_regions:
-                st.session_state["custom_rainfall_map"][name] = custom_box_rain
+            apply_btn = st.button("✅ Apply to Selected Box Grids")
+            if apply_btn:
+                for name in boxed_regions:
+                    st.session_state["custom_rainfall_map"][name] = custom_box_rain
+                st.rerun()
 
     st.markdown("---")
     

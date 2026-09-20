@@ -28,7 +28,6 @@ st.markdown("""
 def load_default_city():
     with open("data/sample_city.json", "r") as f:
         data = json.load(f)
-        # Recalibrate capacities for standard realistic urban basin scale (3000 mm - 6000 mm)
         for r in data["regions"]:
             if r["max_capacity"] < 3000.0:
                 r["max_capacity"] = 4500.0
@@ -43,34 +42,42 @@ all_regions = [Region(**item) for item in city_data["regions"]]
 region_names = [r.name for r in all_regions]
 
 st.sidebar.subheader("🌧️ Climate & Rainfall Inputs")
-global_rain = st.sidebar.slider("Base Rainfall Intensity (mm/hr)", 0.0, 200.0, 50.0, 5.0)
-duration = st.sidebar.number_input("Duration (Hours)", value=6.0, step=1.0)
-time_step = st.sidebar.number_input("Time Step (Mins)", value=10.0, step=5.0)
 
-selected_epicenters = st.sidebar.multiselect(
-    "Target Rainfall Regions (Grid Epicenters):", 
-    region_names, 
-    default=region_names[:6]
-)
+with st.sidebar.form("simulation_parameter_form"):
+    global_rain = st.slider("Base Rainfall Intensity (mm/hr)", 0.0, 200.0, 50.0, 5.0)
+    duration = st.number_input("Duration (Hours)", value=6.0, step=1.0)
+    time_step = st.number_input("Time Step (Mins)", value=10.0, step=5.0)
+
+    selected_epicenters = st.multiselect(
+        "Target Rainfall Regions (Grid Epicenters):", 
+        region_names, 
+        default=region_names[:6]
+    )
+    
+    st.markdown("---")
+    st.write("✏️ **Custom Region Overrides:**")
+    custom_rain_map = {}
+    for name in region_names:
+        if name in selected_epicenters:
+            custom_rain_map[name] = st.number_input(
+                f"🌧️ {name} (mm/hr)", 
+                value=float(global_rain), 
+                min_value=0.0, max_value=200.0, step=5.0,
+                key=f"override_{name}"
+            )
+        else:
+            custom_rain_map[name] = 0.0
+
+    st.markdown("---")
+    st.subheader("🚧 Infrastructure Status")
+    drainage_failures = st.multiselect("Blocked Drainage Regions (Drainage = 0)", region_names)
+    flow_k = st.slider("Hydraulic Flow Coefficient (k)", 0.05, 0.50, 0.15)
+    
+    # Explicit Apply Changes Button
+    apply_changes = st.form_submit_button("✅ Apply Simulation Parameters", use_container_width=True)
+
 start_r_ids = [r.id for r in all_regions if r.name in selected_epicenters]
-
-custom_rain_map = {r.name: (global_rain if r.name in selected_epicenters else 0.0) for r in all_regions}
-
-with st.sidebar.expander("✏️ Customize Specific Region Intensities"):
-    st.write("Override rainfall intensity for individual zones:")
-    for name in selected_epicenters:
-        custom_rain_map[name] = st.number_input(
-            f"🌧️ {name} (mm/hr)", 
-            value=float(global_rain), 
-            min_value=0.0, max_value=200.0, step=5.0,
-            key=f"override_{name}"
-        )
-
-st.sidebar.subheader("🚧 Infrastructure Status")
-drainage_failures = st.sidebar.multiselect("Blocked Drainage Regions (Drainage = 0)", region_names)
 failure_r_ids = [r.id for r in all_regions if r.name in drainage_failures]
-
-flow_k = st.sidebar.slider("Hydraulic Flow Coefficient (k)", 0.05, 0.50, 0.15)
 
 scenario = Scenario(
     rainfall_intensity=global_rain,

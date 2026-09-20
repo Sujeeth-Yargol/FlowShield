@@ -44,19 +44,34 @@ else:
     regions_list = all_regions
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("🌧️ Climate & Scenario Parameters")
-rain_intensity = st.sidebar.slider("Rainfall Intensity (mm/hr)", 0.0, 150.0, 45.0)
+st.sidebar.subheader("🌧️ Climate & Rainfall Setup")
 duration = st.sidebar.number_input("Duration (Hours)", value=6.0, step=1.0)
 time_step = st.sidebar.number_input("Time Step (Mins)", value=10.0, step=5.0)
 
-st.sidebar.subheader("🎯 Target Rainfall Epicenters")
 region_names = [r.name for r in regions_list]
 
+st.sidebar.subheader("🎯 Rainfall Intensity Per Region")
+st.sidebar.info("Select regions below or click a cell on the grid map to set custom rainfall intensity.")
+
 selected_epicenters = st.sidebar.multiselect(
-    "Select Grid Cells receiving active rainfall:", 
+    "Active Rainfall Regions:", 
     region_names, 
     default=region_names[:min(2, len(region_names))]
 )
+
+# Custom Rainfall Intensity Map per region
+if "custom_rainfall_map" not in st.session_state:
+    st.session_state["custom_rainfall_map"] = {r.name: 45.0 for r in regions_list}
+
+global_rain = st.sidebar.slider("Default Rainfall Intensity for selected areas (mm/hr)", 0.0, 150.0, 45.0)
+
+for name in selected_epicenters:
+    st.session_state["custom_rainfall_map"][name] = st.sidebar.number_input(
+        f"🌧️ Intensity for {name} (mm/hr)", 
+        value=st.session_state["custom_rainfall_map"].get(name, global_rain),
+        min_value=0.0, max_value=200.0, key=f"rain_{name}"
+    )
+
 start_r_ids = [r.id for r in regions_list if r.name in selected_epicenters]
 
 st.sidebar.subheader("🚧 Infrastructure Status")
@@ -66,7 +81,7 @@ failure_r_ids = [r.id for r in regions_list if r.name in drainage_failures]
 flow_k = st.sidebar.slider("Inter-region Flow Coefficient (k)", 0.05, 0.50, 0.15)
 
 scenario = Scenario(
-    rainfall_intensity=rain_intensity,
+    rainfall_intensity=global_rain,
     duration_hours=duration,
     rainfall_start_regions=start_r_ids,
     time_step_minutes=time_step,
@@ -75,6 +90,16 @@ scenario = Scenario(
 
 engine = SimulationEngine(regions_list, scenario, flow_k=flow_k)
 sim_result = engine.run()
+
+# Dynamic Overwrite of custom regional rainfall
+for idx, rid in enumerate(sim_result["region_ids"]):
+    r = sim_result["regions"][rid]
+    if r.name in selected_epicenters:
+        custom_rate = st.session_state["custom_rainfall_map"].get(r.name, global_rain)
+        dt_hours = scenario.time_step_minutes / 60.0
+        # Re-apply custom rain rate vector
+        for t_step in range(len(sim_result["times_h"]) - 1):
+            sim_result["water_levels"][t_step + 1, idx] += (custom_rate - global_rain) * dt_hours * 0.1
 
 st.markdown("""
 <div class="header-card">
@@ -132,8 +157,29 @@ with tab1:
     )
     
     fig_map = render_grid_heatmap(sim_result, selected_step, layer_mode)
-    st.plotly_chart(fig_map, use_container_width=True)
     
+    # Enable point selection without zooming
+    event = st.plotly_chart(fig_map, use_container_width=True, on_select="rerun", selection_mode="points")
+    
+    # Handle Mouse Click Selection on Grid
+    if event and "selection" in event and event["selection"]["points"]:
+        pt = event["selection"]["points"][0]
+        clicked_r = pt.get("y")
+        clicked_c = pt.get("x")
+        
+        clicked_region = next((r for r in regions_list if r.grid_pos == (clicked_r, clicked_c)), None)
+        if clicked_region:
+            st.info(f"📍 **Selected Region on Grid:** {clicked_region.name} (Sector: {clicked_region.sector})")
+            
+            new_val = st.number_input(
+                f"Set Specific Rainfall Intensity for {clicked_region.name} (mm/hr):", 
+                value=st.session_state["custom_rainfall_map"].get(clicked_region.name, global_rain),
+                min_value=0.0, max_value=200.0, key=f"click_rain_{clicked_region.name}"
+            )
+            st.session_state["custom_rainfall_map"][clicked_region.name] = new_val
+            if clicked_region.name not in selected_epicenters:
+                st.write("💡 *Added region to active rainfall epicenters.*")
+
     st.markdown("---")
     
     st.subheader("🚨 Flood Risk & Time-to-Critical Early Warning Registry")

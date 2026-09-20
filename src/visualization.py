@@ -28,22 +28,24 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         lvl = sim_res["water_levels"][time_idx, idx]
         cap = sim_res["capacities"][idx]
         
+        # Calculate true fill ratio
         fill_ratio = lvl / cap if cap > 0 else 1.0
+        
         if fill_ratio < 0.60:
             status_str = "Safe"
             status_icon = "🟢"
-            val_color = 0.2
+            status_val = 0.0
         elif fill_ratio < 0.90:
             status_str = "Warning"
             status_icon = "🟡"
-            val_color = 0.6
+            status_val = 0.5
         else:
             status_str = "Critical"
             status_icon = "🔴"
-            val_color = 1.0
+            status_val = 1.0
             
         if "Status" in layer_mode:
-            val = val_color
+            val = status_val
             label = f"<b>{r.name}</b><br>{status_icon} {status_str}<br>🌧️ {rain_val:.0f} mm/hr<br>💧 {lvl:.1f} mm<br>⛰️ {r.elevation:.0f}m"
         elif "Water" in layer_mode:
             val = lvl
@@ -51,9 +53,9 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         elif "Elevation" in layer_mode:
             val = r.elevation
             label = f"<b>{r.name}</b><br>⛰️ {val:.0f} m"
-        else:
+        else:  # Storm Drainage Capacity
             val = r.drainage_capacity
-            label = f"<b>{r.name}</b><br>🚰 {val:.0f} mm/h"
+            label = f"<b>{r.name}</b><br>🚰 {val:.0f} mm/h<br>⛰️ {r.elevation:.0f}m"
             
         grid_data[r_i, c_i] = val
         text_matrix[r_i][c_i] = r.name
@@ -61,12 +63,22 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
             dict(x=c_i, y=r_i, text=label, showarrow=False, font=dict(color="white", size=10, family="Inter"))
         )
 
-    # Strictly 3-color discrete palette for Safe, Warning, and Critical
-    colorscale = [
-        [0.0, "#2ecc71"],
-        [0.5, "#f39c12"],
-        [1.0, "#e74c3c"]
-    ] if "Status" in layer_mode else "Reds"
+    if "Status" in layer_mode:
+        colorscale = [
+            [0.0, "#2ecc71"],  # Safe -> Green
+            [0.5, "#f39c12"],  # Warning -> Yellow
+            [1.0, "#e74c3c"]   # Critical -> Red
+        ]
+        z_min, z_max = 0.0, 1.0
+    elif "Drainage" in layer_mode:
+        colorscale = "Blues"
+        z_min, z_max = 0.0, max(300.0, np.max(grid_data))
+    elif "Water" in layer_mode:
+        colorscale = "Reds"
+        z_min, z_max = 0.0, max(100.0, np.max(grid_data))
+    else:  # Elevation
+        colorscale = "Viridis"
+        z_min, z_max = np.min(grid_data), np.max(grid_data)
     
     fig = go.Figure(data=go.Heatmap(
         z=grid_data,
@@ -74,8 +86,8 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         hoverinfo="text+z",
         colorscale=colorscale,
         showscale=False,
-        zmin=0.0 if "Status" in layer_mode else None,
-        zmax=1.0 if "Status" in layer_mode else None
+        zmin=z_min,
+        zmax=z_max
     ))
     
     fig.update_layout(

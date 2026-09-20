@@ -35,10 +35,9 @@ class SimulationEngine:
         elevations = np.array([self.regions[rid].elevation for rid in region_ids])
         capacities = np.array([self.regions[rid].max_capacity for rid in region_ids])
         populations = np.array([self.regions[rid].population for rid in region_ids])
-        drainage_base = np.array([
-            0.0 if rid in self.scenario.drainage_failure_regions else self.regions[rid].drainage_capacity
-            for rid in region_ids
-        ])
+        
+        # Explicitly read active updated drainage capacity
+        drainage_base = np.array([self.regions[rid].drainage_capacity for rid in region_ids])
         
         rain_rates_per_region = np.array([
             self.custom_rain_map.get(self.regions[rid].name, self.scenario.rainfall_intensity)

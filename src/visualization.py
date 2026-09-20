@@ -28,7 +28,6 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         lvl = sim_res["water_levels"][time_idx, idx]
         cap = sim_res["capacities"][idx]
         
-        # Calculate true fill ratio
         fill_ratio = lvl / cap if cap > 0 else 1.0
         
         if fill_ratio < 0.60:
@@ -46,14 +45,14 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
             
         if "Status" in layer_mode:
             val = status_val
-            label = f"<b>{r.name}</b><br>{status_icon} {status_str}<br>🌧️ {rain_val:.0f} mm/hr<br>💧 {lvl:.1f} mm<br>⛰️ {r.elevation:.0f}m"
+            label = f"<b>{r.name}</b><br>{status_icon} {status_str}<br>🌧️ {rain_val:.0f} mm/hr<br>💧 {lvl:.1f} mm<br>🚰 {r.drainage_capacity:.0f} mm/h"
         elif "Water" in layer_mode:
             val = lvl
             label = f"<b>{r.name}</b><br>🌧️ {rain_val:.0f} mm/hr<br>💧 {lvl:.1f} mm"
         elif "Elevation" in layer_mode:
             val = r.elevation
             label = f"<b>{r.name}</b><br>⛰️ {val:.0f} m"
-        else:  # Storm Drainage Capacity
+        else:
             val = r.drainage_capacity
             label = f"<b>{r.name}</b><br>🚰 {val:.0f} mm/h<br>⛰️ {r.elevation:.0f}m"
             
@@ -65,9 +64,9 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
 
     if "Status" in layer_mode:
         colorscale = [
-            [0.0, "#2ecc71"],  # Safe -> Green
-            [0.5, "#f39c12"],  # Warning -> Yellow
-            [1.0, "#e74c3c"]   # Critical -> Red
+            [0.0, "#2ecc71"],
+            [0.5, "#f39c12"],
+            [1.0, "#e74c3c"]
         ]
         z_min, z_max = 0.0, 1.0
     elif "Drainage" in layer_mode:
@@ -76,7 +75,7 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
     elif "Water" in layer_mode:
         colorscale = "Reds"
         z_min, z_max = 0.0, max(100.0, np.max(grid_data))
-    else:  # Elevation
+    else:
         colorscale = "Viridis"
         z_min, z_max = np.min(grid_data), np.max(grid_data)
     

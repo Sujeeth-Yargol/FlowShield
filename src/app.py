@@ -9,7 +9,7 @@ import numpy as np
 from src.models import Region, Scenario
 from src.simulation import SimulationEngine, optimize_drainage_allocation
 from src.visualization import render_grid_heatmap, render_water_level_chart
-from src.classification import calculate_time_to_critical, classify_status
+from src.classification import calculate_time_to_thresholds, classify_status
 
 st.set_page_config(page_title="FLOWSHIELD — Hydrodynamic Early Warning Dashboard", layout="wide")
 
@@ -39,7 +39,6 @@ st.sidebar.title("🎛️ FlowShield Control Plane")
 base_regions = [Region(**item) for item in city_data["regions"]]
 region_names = [r.name for r in base_regions]
 
-# --- DEMO PRESETS DEFINITION ---
 st.sidebar.subheader("🎬 Demo Quick-Presets")
 preset_choice = st.sidebar.selectbox(
     "Load Scenario Preset:",
@@ -169,7 +168,6 @@ scenario = Scenario(
 engine = SimulationEngine(active_regions, scenario, flow_k=0.15, custom_rain_map=custom_rain_map)
 sim_result = engine.run()
 
-# Header
 st.markdown("""
 <div class="header-card">
     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -229,7 +227,6 @@ with tab1:
         horizontal=True
     )
 
-    # Dynamic Legend Card based on selected active layer
     if "Status" in layer_mode:
         st.markdown("""
         <div class="legend-card">
@@ -268,7 +265,7 @@ with tab1:
 
     st.markdown("---")
     
-    st.subheader("🚨 Flood Risk & Time-to-Critical Early Warning Registry")
+    st.subheader("🚨 Flood Risk & Threshold Projection Registry")
     
     rows = []
     for idx, rid in enumerate(sim_result["region_ids"]):
@@ -277,13 +274,25 @@ with tab1:
         cap = sim_result["capacities"][idx]
         rate = sim_result["rates_h"][selected_step, idx]
         
-        eta = calculate_time_to_critical(lvl, cap, rate)
-        if eta == 0.0:
-            eta_str = "0.0 hrs (Already Critical)"
-        elif eta is not None and eta > 0:
-            eta_str = f"{eta:.1f} hrs to Critical"
+        eta_dict = calculate_time_to_thresholds(lvl, cap, rate)
+        eta_warn = eta_dict["eta_warning"]
+        eta_crit = eta_dict["eta_critical"]
+        
+        # ETA to Warning string
+        if eta_warn == 0.0:
+            warn_str = "In Warning/Critical"
+        elif eta_warn is not None and eta_warn > 0:
+            warn_str = f"{eta_warn:.1f} hrs"
         else:
-            eta_str = "Not projected"
+            warn_str = "Not projected"
+            
+        # ETA to Critical string
+        if eta_crit == 0.0:
+            crit_str = "Already Critical"
+        elif eta_crit is not None and eta_crit > 0:
+            crit_str = f"{eta_crit:.1f} hrs"
+        else:
+            crit_str = "Not projected"
             
         rows.append({
             "Region ID": r.id,
@@ -294,7 +303,8 @@ with tab1:
             "Rainfall (mm/hr)": f"{custom_rain_map.get(r.name, 0.0):.0f}",
             "Water Level (mm)": f"{lvl:.1f} / {cap:.0f}",
             "Status": curr_statuses[idx],
-            "ETA to Critical Status": eta_str
+            "ETA to Warning (2000mm)": warn_str,
+            "ETA to Critical (3800mm)": crit_str
         })
         
     df_reg = pd.DataFrame(rows)

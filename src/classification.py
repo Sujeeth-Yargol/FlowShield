@@ -1,12 +1,4 @@
-from typing import Optional
-
 def classify_status(water_level: float, max_capacity: float) -> str:
-    """
-    Classifies flood status into 3 distinct bands:
-    - Safe: < 2000 mm
-    - Warning: 2000 mm - 3800 mm
-    - Critical: >= 3800 mm
-    """
     if water_level < 2000.0:
         return "Safe"
     elif water_level < 3800.0:
@@ -14,10 +6,25 @@ def classify_status(water_level: float, max_capacity: float) -> str:
     else:
         return "Critical"
 
-def calculate_time_to_critical(water_level: float, max_capacity: float, accumulation_rate_h: float) -> Optional[float]:
+def calculate_time_to_thresholds(current_level: float, max_capacity: float, rate_per_hour: float) -> dict:
+    warning_threshold = 2000.0
     critical_threshold = 3800.0
-    if water_level >= critical_threshold:
-        return 0.0
-    if accumulation_rate_h <= 0:
-        return None
-    return (critical_threshold - water_level) / accumulation_rate_h
+    
+    eta_warning = None
+    eta_critical = None
+    
+    if rate_per_hour > 0:
+        if current_level < warning_threshold:
+            eta_warning = (warning_threshold - current_level) / rate_per_hour
+        else:
+            eta_warning = 0.0
+            
+        if current_level < critical_threshold:
+            eta_critical = (critical_threshold - current_level) / rate_per_hour
+        else:
+            eta_critical = 0.0
+            
+    return {
+        "eta_warning": eta_warning,
+        "eta_critical": eta_critical
+    }

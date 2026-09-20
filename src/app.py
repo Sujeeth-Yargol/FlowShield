@@ -59,15 +59,13 @@ time_step = st.sidebar.number_input("Time Step (Mins)", value=10.0, step=5.0)
 
 region_names = [r.name for r in regions_list]
 
-# Direct dynamic mapping for rainfall intensity
-if "prev_global_rain" not in st.session_state:
-    st.session_state["prev_global_rain"] = global_rain
+# Persistent per-grid rainfall state
+if "custom_rainfall_map" not in st.session_state:
     st.session_state["custom_rainfall_map"] = {r.name: global_rain for r in regions_list}
 
-# If global base rainfall changed in sidebar, update all region values
-if st.session_state["prev_global_rain"] != global_rain:
+# Reset button in sidebar if user wants to set all grids back to base
+if st.sidebar.button("🔄 Reset All Grids to Base Rainfall"):
     st.session_state["custom_rainfall_map"] = {r.name: global_rain for r in regions_list}
-    st.session_state["prev_global_rain"] = global_rain
 
 selected_epicenters = st.sidebar.multiselect(
     "Active Rainfall Regions:", 
@@ -167,12 +165,13 @@ with tab1:
         if boxed_regions:
             st.success(f"📌 **Box Selected Regions ({len(boxed_regions)}):** {', '.join(boxed_regions)}")
             
+            first_region_val = st.session_state["custom_rainfall_map"].get(boxed_regions[0], global_rain)
             custom_box_rain = st.number_input(
-                f"🌧️ Apply Custom Rainfall Intensity for Selected Grids ({', '.join(boxed_regions)}):",
-                value=float(st.session_state["custom_rainfall_map"].get(boxed_regions[0], global_rain)),
-                min_value=0.0, max_value=200.0, key="box_rain_input"
+                f"🌧️ Apply Custom Rainfall Intensity for Selected Grids Only ({', '.join(boxed_regions)}):",
+                value=float(first_region_val), min_value=0.0, max_value=200.0, key="box_rain_input"
             )
             
+            # Apply update STRICTLY to boxed regions
             for name in boxed_regions:
                 st.session_state["custom_rainfall_map"][name] = custom_box_rain
 

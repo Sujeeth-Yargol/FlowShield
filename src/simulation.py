@@ -4,12 +4,13 @@ from src.models import Region, Scenario
 from src.classification import classify_status
 
 class SimulationEngine:
-    def __init__(self, regions: List[Region], scenario: Scenario, flow_k: float = 0.15, roughness_n: float = 0.025):
+    def __init__(self, regions: List[Region], scenario: Scenario, flow_k: float = 0.15, roughness_n: float = 0.025, custom_rain_map: Dict[str, float] = None):
         self.regions = {r.id: r for r in regions}
         self.scenario = scenario
         self.flow_k = flow_k
-        self.roughness_n = roughness_n  # Manning's roughness coefficient
-        self.grid_spacing_m = 1000.0     # 1 km grid resolution
+        self.roughness_n = roughness_n
+        self.grid_spacing_m = 1000.0
+        self.custom_rain_map = custom_rain_map or {}
         self._build_grid_connectivity()
         
     def _build_grid_connectivity(self):
@@ -39,6 +40,12 @@ class SimulationEngine:
             for rid in region_ids
         ])
         
+        rain_rates_per_region = np.array([
+            self.custom_rain_map.get(self.regions[rid].name, self.scenario.rainfall_intensity)
+            if rid in self.scenario.rainfall_start_regions else 0.0
+            for rid in region_ids
+        ])
+        
         water_levels = np.zeros((total_steps, N))
         water_levels[0] = np.array([self.regions[rid].initial_water_level for rid in region_ids])
         rates_h = np.zeros((total_steps, N))
@@ -46,12 +53,9 @@ class SimulationEngine:
         blocked_set = set(self.scenario.blocked_channels) | set((b, a) for a, b in self.scenario.blocked_channels)
 
         for t_idx in range(total_steps - 1):
-            current_t = times_h[t_idx]
-            rain_rate = self.scenario.get_rainfall_at_time(current_t)
             curr_water = water_levels[t_idx].copy()
             
-            # CFL Numerical Stability Check & Adaptive Sub-stepping
-            max_w = max(1.0, np.max(curr_water) / 1000.0) # convert mm to meters
+            max_w = max(1.0, np.max(curr_water) / 1000.0)
             cfl_dt_max_h = (self.grid_spacing_m / np.sqrt(9.81 * max_w)) / 3600.0
             n_substeps = max(1, int(np.ceil(dt_hours / max(1e-4, cfl_dt_max_h))))
             sub_dt = dt_hours / n_substeps
@@ -59,11 +63,7 @@ class SimulationEngine:
             temp_water = curr_water.copy()
             
             for _ in range(n_substeps):
-                rain_in = np.zeros(N)
-                for rid in self.scenario.rainfall_start_regions:
-                    if rid in id_to_idx:
-                        rain_in[id_to_idx[rid]] = rain_rate * sub_dt
-                        
+                rain_in = rain_rates_per_region * sub_dt
                 drained = np.minimum(temp_water, drainage_base * sub_dt)
                 net_flow = np.zeros(N)
                 heads = temp_water + elevations
@@ -74,7 +74,6 @@ class SimulationEngine:
                         if i < j and (rid, neighbor_id) not in blocked_set:
                             head_diff = heads[i] - heads[j]
                             if head_diff != 0:
-                                # Non-linear Manning Hydraulic Head Equation
                                 slope = abs(head_diff) / self.grid_spacing_m
                                 flow_velocity = (1.0 / self.roughness_n) * ((max_w)**(2/3)) * np.sqrt(slope)
                                 flow = self.flow_k * flow_velocity * np.sign(head_diff) * sub_dt * 1000.0
@@ -111,14 +110,9 @@ class SimulationEngine:
         }
 
 def optimize_drainage_allocation(regions: list, scenario: Scenario, budget_mm_h: float = 50.0) -> dict:
-    """
-    Mathematical Optimization: Greedy Gradient Descent for Optimal Drainage Allocation
-    Finds the exact regions where adding drainage capacity yields the highest reduction in affected population.
-    """
     base_engine = SimulationEngine(regions, scenario)
     base_res = base_engine.run()
     
-    # Baseline affected population
     last_step = -1
     base_pop = sum(base_res["populations"][i] for i, s in enumerate(base_res["statuses"][last_step]) if s in ["Warning", "Critical"])
     
@@ -131,7 +125,6 @@ def optimize_drainage_allocation(regions: list, scenario: Scenario, budget_mm_h:
         max_pop_reduction = -1
         
         for r in regions:
-            # Test allocating step_size to region r
             test_regions = [
                 Region(
                     id=item.id, name=item.name, sector=item.sector, grid_pos=item.grid_pos,
@@ -151,7 +144,6 @@ def optimize_drainage_allocation(regions: list, scenario: Scenario, budget_mm_h:
                 best_region_id = r.id
                 
         if best_region_id is None or max_pop_reduction <= 0:
-            # Distribute remaining budget evenly among critical zones if gradient is zero
             crit_ids = [rid for i, rid in enumerate(base_res["region_ids"]) if base_res["statuses"][last_step][i] == "Critical"]
             if crit_ids:
                 for cid in crit_ids:

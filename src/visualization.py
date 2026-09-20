@@ -3,7 +3,7 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 
-def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str):
+def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dragmode: str = "select"):
     region_ids = sim_res["region_ids"]
     regions = sim_res["regions"]
     
@@ -61,13 +61,13 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str):
     
     fig.update_layout(
         annotations=annotations,
-        xaxis=dict(showgrid=True, gridcolor="#2D3748", zeroline=False, title="Grid Easting (Columns)", fixedrange=True),
-        yaxis=dict(showgrid=True, gridcolor="#2D3748", zeroline=False, autorange="reversed", title="Grid Northing (Rows)", fixedrange=True),
+        xaxis=dict(showgrid=True, gridcolor="#2D3748", zeroline=False, title="Grid Columns", fixedrange=True),
+        yaxis=dict(showgrid=True, gridcolor="#2D3748", zeroline=False, autorange="reversed", title="Grid Rows", fixedrange=True),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=40, r=20, t=20, b=40),
         height=480,
-        dragmode=False  # Disables drag zoom on map click
+        dragmode=active_dragmode  # "select" enables rectangle drag box selection
     )
     return fig
 

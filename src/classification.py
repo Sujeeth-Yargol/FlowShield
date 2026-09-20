@@ -2,30 +2,20 @@ from typing import Optional
 
 def classify_status(water_level: float, max_capacity: float) -> str:
     """
-    Classifies flood status into strictly 3 categories:
-    - Safe: < 60% capacity
-    - Warning: 60% - 89.9% capacity
-    - Critical: >= 90% capacity
+    Classifies flood status into strictly 3 categories based on realistic urban inundation depth:
+    - Safe: < 1200 mm
+    - Warning: 1200 mm - 2500 mm
+    - Critical: >= 2500 mm
     """
-    if max_capacity <= 0:
-        return "Critical"
-    
-    ratio = water_level / max_capacity
-    
-    if ratio < 0.60:
+    if water_level < 1200.0:
         return "Safe"
-    elif ratio < 0.90:
+    elif water_level < 2500.0:
         return "Warning"
     else:
         return "Critical"
 
 def calculate_time_to_critical(water_level: float, max_capacity: float, accumulation_rate_h: float) -> Optional[float]:
-    """
-    Calculates estimated time (hours) remaining strictly to reach Critical status (90% capacity).
-    - If already Critical (>= 90%): returns 0.0
-    - If water level is not increasing (accumulation_rate_h <= 0): returns None
-    """
-    critical_threshold = 0.90 * max_capacity
+    critical_threshold = 2500.0
     if water_level >= critical_threshold:
         return 0.0
     if accumulation_rate_h <= 0:

@@ -6,57 +6,60 @@ import streamlit as st
 import json
 import pandas as pd
 from src.models import Region, Scenario
-from src.simulation import SimulationEngine
-from src.scenarios import normal_rainfall_scenario, heavy_rainfall_scenario
+from src.simulation import SimulationEngine, optimize_drainage_allocation
 from src.visualization import render_grid_heatmap, render_water_level_chart
 from src.classification import calculate_time_to_critical
 
 st.set_page_config(page_title="FLOWSHIELD — Bangalore Basin & Grid Engine", layout="wide")
 
-# Custom UI Theme
 st.markdown("""
 <style>
     .stApp { background-color: #0D1117; color: #C9D1D9; }
     .header-card { background: #161B22; border: 1px solid #30363D; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-    .metric-box { background: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 15px; text-align: center; }
     .critical-box { background: #3C1E1E; border: 1px solid #F85149; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
     .warning-box { background: #382C1E; border: 1px solid #D29922; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
     .safe-box { background: #1E3A2B; border: 1px solid #2EA043; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
 </style>
 """, unsafe_allow_html=True)
 
-# Load City Data
 @st.cache_data
 def load_default_city():
     with open("data/sample_city.json", "r") as f:
         return json.load(f)
 
 city_data = load_default_city()
-regions_list = [Region(**item) for item in city_data["regions"]]
 
-# Sidebar Control Plane
 st.sidebar.title("🎛️ Simulation Control Plane")
-st.sidebar.radio("Select City Topography Source", ["Bangalore Basin (16 Zones)", "Custom Grid Builder", "Import Custom JSON/CSV"])
+
+# Grid Dimensions Selector
+st.sidebar.subheader("📐 Grid Topology Configuration")
+grid_mode = st.sidebar.radio("Select Grid Size Preset", ["4x4 Bangalore Core (16 Zones)", "Custom Subset (e.g. 2x2, 2x3, 3x3)"])
+
+all_regions = [Region(**item) for item in city_data["regions"]]
+
+if "Custom Subset" in grid_mode:
+    rows_cnt = st.sidebar.slider("Grid Rows (Y)", 1, 4, 2)
+    cols_cnt = st.sidebar.slider("Grid Columns (X)", 1, 4, 3)
+    regions_list = [r for r in all_regions if r.grid_pos[0] < rows_cnt and r.grid_pos[1] < cols_cnt]
+else:
+    regions_list = all_regions
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("🌧️ Climate & Scenario Parameters")
-preset = st.sidebar.selectbox("Quick Scenario Preset (Bonus)", ["Normal rainfall", "Heavy rainfall", "Drainage failure"])
-
+rain_intensity = st.sidebar.slider("Rainfall Intensity (mm/hr)", 0.0, 150.0, 45.0)
 duration = st.sidebar.number_input("Duration (Hours)", value=6.0, step=1.0)
 time_step = st.sidebar.number_input("Time Step (Mins)", value=10.0, step=5.0)
 
-rain_type = st.sidebar.radio("Rainfall Type", ["Constant Rate", "Time-Varying Curve"])
-rain_intensity = st.sidebar.slider("Rainfall Intensity (mm/hr)", 0.0, 150.0, 24.0)
-
-st.sidebar.subheader("📍 Rainfall Inflow Epicenters")
-rain_distrib = st.sidebar.radio("Rainfall Distribution", ["City-Wide (All Regions)", "Targeted Epicenters (Highland/Specific Zones)"])
-
+st.sidebar.subheader("🎯 Target Rainfall Epicenters (Mouse / Checkbox Selection)")
 region_names = [r.name for r in regions_list]
-if rain_distrib == "City-Wide (All Regions)":
-    start_r_ids = [r.id for r in regions_list]
-else:
-    selected_epicenters = st.sidebar.multiselect("Choose Epicenters", region_names, default=[region_names[2], region_names[11]])
-    start_r_ids = [r.id for r in regions_list if r.name in selected_epicenters]
+
+# Interactive Multi-Select / Checkbox Selector
+selected_epicenters = st.sidebar.multiselect(
+    "Select Grid Cells receiving active rainfall:", 
+    region_names, 
+    default=region_names[:min(2, len(region_names))]
+)
+start_r_ids = [r.id for r in regions_list if r.name in selected_epicenters]
 
 st.sidebar.subheader("🚧 Infrastructure Status")
 drainage_failures = st.sidebar.multiselect("Drainage Failure Regions (Drainage = 0)", region_names)
@@ -64,7 +67,6 @@ failure_r_ids = [r.id for r in regions_list if r.name in drainage_failures]
 
 flow_k = st.sidebar.slider("Inter-region Flow Coefficient (k)", 0.05, 0.50, 0.15)
 
-# Build & Run Scenario
 scenario = Scenario(
     rainfall_intensity=rain_intensity,
     duration_hours=duration,
@@ -76,7 +78,7 @@ scenario = Scenario(
 engine = SimulationEngine(regions_list, scenario, flow_k=flow_k)
 sim_result = engine.run()
 
-# Main Header
+# Header
 st.markdown("""
 <div class="header-card">
     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -92,10 +94,9 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Top Navigation Tabs
 tab1, tab2, tab3, tab4 = st.tabs([
     "📊 Real-Time Flood Intelligence", 
-    "⚖️ Scenario Comparison Studio", 
+    "🧮 Mathematical Optimization Studio", 
     "🌊 Inter-Region Hydraulic Vectors", 
     "📜 Export & Documentation"
 ])
@@ -109,7 +110,6 @@ with tab1:
     
     st.caption(f"Viewing: ⚙️ **FINAL FLOOD STATE at t={current_t:.2f} hrs**")
     
-    # Live KPI Cards Bar
     curr_statuses = sim_result["statuses"][selected_step]
     num_critical = curr_statuses.count("Critical")
     num_warning = curr_statuses.count("Warning")
@@ -120,29 +120,14 @@ with tab1:
     )
     
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("🚨 CRITICAL FLOOD ZONES", f"{num_critical}/16", "Ratio ≥ 90% capacity")
+    k1.metric("🚨 CRITICAL FLOOD ZONES", f"{num_critical}/{len(regions_list)}", "Ratio ≥ 90% capacity")
     k2.metric("⚠️ WARNING CATCHMENTS", f"{num_warning}", "Ratio 60% - 90%")
     k3.metric("🟢 SAFE RESILIENT ZONES", f"{num_safe}", "Water level < 60%")
-    k4.metric("👥 AFFECTED POPULATION (BONUS)", f"{affected_pop:,}", "Citizens in Warning or Critical")
+    k4.metric("👥 AFFECTED POPULATION", f"{affected_pop:,}", "Citizens in Warning or Critical")
     
     st.markdown("---")
     
-    # Regional Breakdown Summaries
-    crit_names = [sim_result["regions"][rid].name for i, rid in enumerate(sim_result["region_ids"]) if curr_statuses[i] == "Critical"]
-    warn_names = [sim_result["regions"][rid].name for i, rid in enumerate(sim_result["region_ids"]) if curr_statuses[i] == "Warning"]
-    safe_names = [sim_result["regions"][rid].name for i, rid in enumerate(sim_result["region_ids"]) if curr_statuses[i] == "Safe"]
-    
-    b1, b2, b3 = st.columns(3)
-    with b1:
-        st.markdown(f"<div class='critical-box'><b style='color:#F85149;'>CRITICAL FLOOD ZONES ({len(crit_names)})</b><br><small>{', '.join(crit_names) if crit_names else 'None'}</small></div>", unsafe_allow_html=True)
-    with b2:
-        st.markdown(f"<div class='warning-box'><b style='color:#D29922;'>WARNING CATCHMENTS ({len(warn_names)})</b><br><small>{', '.join(warn_names) if warn_names else 'None'}</small></div>", unsafe_allow_html=True)
-    with b3:
-        st.markdown(f"<div class='safe-box'><b style='color:#2EA043;'>SAFE RESILIENT ZONES ({len(safe_names)})</b><br><small>{', '.join(safe_names) if safe_names else 'None'}</small></div>", unsafe_allow_html=True)
-        
-    st.markdown("---")
-    
-    st.subheader("🗺️ Multi-Layer Grid Visualization")
+    st.subheader("🗺️ Multi-Layer Interactive Grid Visualization")
     layer_mode = st.radio(
         "Select Active Grid Layer:", 
         ["🚨 Flood Early Warning Status (Safe/Warning/Critical)", "💧 Water Accumulation Level (mm)", "⛰️ Terrain Elevation Topography (m)", "🚰 Storm Drainage Capacity (mm/hr)"], 
@@ -179,8 +164,27 @@ with tab1:
         
     df_reg = pd.DataFrame(rows)
     st.dataframe(df_reg, use_container_width=True)
+
+with tab2:
+    st.subheader("🧮 Mathematical Optimization Engine")
+    budget = st.slider("Total Available Drainage Upgrade Budget (mm/hr)", 10.0, 200.0, 50.0)
     
-    st.markdown("---")
-    
-    st.subheader("📈 Water Level Evolution Over Simulation Time")
-    st.plotly_chart(render_water_level_chart(sim_result), use_container_width=True)
+    if st.button("🚀 Run Gradient Descent Optimization Solver"):
+        opt_res = optimize_drainage_allocation(regions_list, scenario, budget_mm_h=budget)
+        st.success("Optimization Complete!")
+        
+        opt_rows = []
+        for r in regions_list:
+            alloc = opt_res["allocations"][r.id]
+            if alloc > 0:
+                opt_rows.append({
+                    "Region Name": r.name,
+                    "Current Drainage (mm/hr)": r.drainage_capacity,
+                    "Recommended Upgrade (+mm/hr)": alloc,
+                    "New Total Drainage (mm/hr)": r.drainage_capacity + alloc
+                })
+        
+        if opt_rows:
+            st.dataframe(pd.DataFrame(opt_rows), use_container_width=True)
+        else:
+            st.info("Current drainage infrastructure is sufficient for this scenario!")

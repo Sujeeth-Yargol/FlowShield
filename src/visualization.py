@@ -28,14 +28,12 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         lvl = sim_res["water_levels"][time_idx, idx]
         cap = sim_res["capacities"][idx]
         
-        # Calculate true fill ratio against capacity
-        fill_ratio = lvl / cap if cap > 0 else 1.0
-        
-        if fill_ratio < 0.60:
+        # Calculate true status ratio
+        if lvl < 2000.0:
             status_str = "Safe"
             status_icon = "🟢"
             status_val = 0.0   # Green
-        elif fill_ratio < 0.90:
+        elif lvl < 3800.0:
             status_str = "Warning"
             status_icon = "🟡"
             status_val = 0.5   # Yellow
@@ -64,13 +62,12 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         )
 
     if "Status" in layer_mode:
-        # Strict discrete colorscale mapping: 0.0 -> Green, 0.5 -> Yellow, 1.0 -> Red
         colorscale = [
             [0.0, "#2ecc71"],
-            [0.25, "#2ecc71"],
-            [0.26, "#f39c12"],
-            [0.75, "#f39c12"],
-            [0.76, "#e74c3c"],
+            [0.33, "#2ecc71"],
+            [0.34, "#f39c12"],
+            [0.66, "#f39c12"],
+            [0.67, "#e74c3c"],
             [1.0, "#e74c3c"]
         ]
         z_min, z_max = 0.0, 1.0

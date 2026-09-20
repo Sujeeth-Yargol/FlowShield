@@ -24,7 +24,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Direct uncached loader so Streamlit immediately reloads updated JSON
 def load_default_city():
     with open("data/sample_city.json", "r") as f:
         data = json.load(f)
@@ -224,23 +223,46 @@ with tab1:
     
     st.markdown("---")
     
-    st.markdown("""
-    <div class="legend-card">
-        <b style="color: #58A6FF;">🎨 Flood Risk Classification Legend:</b>
-        <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap; font-size: 13px;">
-            <div><span style="color: #2ECC71; font-weight: bold;">🟢 Green (Safe)</span>: Water Level &lt; 2000 mm</div>
-            <div><span style="color: #F39C12; font-weight: bold;">🟡 Yellow / Orange (Warning)</span>: Water Level 2000 mm – 3800 mm</div>
-            <div><span style="color: #E74C3C; font-weight: bold;">🔴 Red (Critical)</span>: Water Level ≥ 3800 mm</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
     layer_mode = st.radio(
         "Select Active Grid Layer:", 
         ["🚨 Flood Early Warning Status (Safe/Warning/Critical)", "💧 Water Accumulation Level (mm)", "⛰️ Terrain Elevation Topography (m)", "🚰 Storm Drainage Capacity (mm/hr)"], 
         horizontal=True
     )
-    
+
+    # Dynamic Legend Card based on selected active layer
+    if "Status" in layer_mode:
+        st.markdown("""
+        <div class="legend-card">
+            <b style="color: #58A6FF;">🎨 Flood Risk Classification Legend:</b>
+            <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap; font-size: 13px;">
+                <div><span style="color: #2ECC71; font-weight: bold;">🟢 Green (Safe)</span>: Water Level &lt; 2000 mm</div>
+                <div><span style="color: #F39C12; font-weight: bold;">🟡 Yellow / Orange (Warning)</span>: Water Level 2000 mm – 3800 mm</div>
+                <div><span style="color: #E74C3C; font-weight: bold;">🔴 Red (Critical)</span>: Water Level ≥ 3800 mm</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    elif "Water" in layer_mode:
+        st.markdown("""
+        <div class="legend-card">
+            <b style="color: #58A6FF;">💧 Water Accumulation Legend:</b>
+            <span style="font-size: 13px; margin-left: 10px;">Gradient scale from <b>Light Red (Low Depth, ~0 mm)</b> to <b>Dark Red (Deep Accumulation, >5000 mm)</b>. See side colorbar.</span>
+        </div>
+        """, unsafe_allow_html=True)
+    elif "Elevation" in layer_mode:
+        st.markdown("""
+        <div class="legend-card">
+            <b style="color: #58A6FF;">⛰️ Terrain Elevation Topography Legend:</b>
+            <span style="font-size: 13px; margin-left: 10px;">Viridis gradient scale from <b>Dark Purple (Low Valley Basins, ~880m)</b> to <b>Bright Yellow/Green (Highland Ridges, ~935m)</b>. See side colorbar.</span>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div class="legend-card">
+            <b style="color: #58A6FF;">🚰 Storm Drainage Infrastructure Capacity Legend:</b>
+            <span style="font-size: 13px; margin-left: 10px;">Blues gradient scale from <b>Light Blue (Low Capacity, ~10 mm/hr)</b> to <b>Deep Blue (High Capacity / Upgraded, 150-300 mm/hr)</b>. See side colorbar.</span>
+        </div>
+        """, unsafe_allow_html=True)
+
     fig_map = render_grid_heatmap(sim_result, selected_step, layer_mode, custom_rain_map=custom_rain_map)
     st.plotly_chart(fig_map, use_container_width=True)
 

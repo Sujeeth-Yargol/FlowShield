@@ -28,19 +28,18 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         lvl = sim_res["water_levels"][time_idx, idx]
         cap = sim_res["capacities"][idx]
         
-        # Calculate true status ratio
         if lvl < 2000.0:
             status_str = "Safe"
             status_icon = "🟢"
-            status_val = 0.0   # Green
+            status_val = 0.0
         elif lvl < 3800.0:
             status_str = "Warning"
             status_icon = "🟡"
-            status_val = 0.5   # Yellow
+            status_val = 0.5
         else:
             status_str = "Critical"
             status_icon = "🔴"
-            status_val = 1.0   # Red
+            status_val = 1.0
             
         if "Status" in layer_mode:
             val = status_val
@@ -61,6 +60,9 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
             dict(x=c_i, y=r_i, text=label, showarrow=False, font=dict(color="white", size=10, family="Inter"))
         )
 
+    show_scale_legend = True
+    colorbar_title = ""
+
     if "Status" in layer_mode:
         colorscale = [
             [0.0, "#2ecc71"],
@@ -71,22 +73,27 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
             [1.0, "#e74c3c"]
         ]
         z_min, z_max = 0.0, 1.0
+        show_scale_legend = False  # Custom HTML card handles Status legend
     elif "Drainage" in layer_mode:
         colorscale = "Blues"
         z_min, z_max = 0.0, max(300.0, float(np.max(grid_data)))
+        colorbar_title = "Drainage (mm/hr)"
     elif "Water" in layer_mode:
         colorscale = "Reds"
         z_min, z_max = 0.0, max(100.0, float(np.max(grid_data)))
+        colorbar_title = "Water Depth (mm)"
     else:
         colorscale = "Viridis"
         z_min, z_max = float(np.min(grid_data)), float(np.max(grid_data))
+        colorbar_title = "Elevation (m)"
     
     fig = go.Figure(data=go.Heatmap(
         z=grid_data,
         text=text_matrix,
         hoverinfo="text+z",
         colorscale=colorscale,
-        showscale=False,
+        showscale=show_scale_legend,
+        colorbar=dict(title=colorbar_title, tickfont=dict(color="#C9D1D9")) if show_scale_legend else None,
         zmin=z_min,
         zmax=z_max
     ))

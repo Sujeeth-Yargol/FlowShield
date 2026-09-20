@@ -134,14 +134,7 @@ The algorithm steps in increments of $\Delta b = 10\text{ mm/hr}$, iteratively a
 
 ---
 
-## Libraries and Dependencies
 
-FlowShield is implemented in Python and relies on the following core libraries:
-
-- **Streamlit**: Interactive web dashboard framework providing reactive user inputs, sidebar forms, sliders, tabs, and real-time state re-rendering.
-- **NumPy**: Vectorized array operations, CFL time-step calculations, hydraulic head differential matrices, and numerical mass conservation.
-- **Pandas**: Structured time-series datasets, risk registry tables, and CSV report formatting.
-- **Plotly**: Dynamic data visualizations, including the 2D spatial heatmap grid and multi-series water depth progression charts.
 
 ---
 
@@ -209,6 +202,38 @@ FlowShield/
 ---
 
 ### Team Information
-A hackathon repo for a team called Stack Overflow consisting of 4 members.
+Team Name: Stack Overflow
+Members: Samrudh AV, Sai Chiranth M, Sujeeth Yargol, Saksham Singh
 
-a hackathon repo for a team called Stack Overflow consisting of 4 members.
+## Libraries and Dependencies
+
+FlowShield is implemented in Python and relies on the following core libraries:
+
+- **Streamlit**: Interactive web dashboard framework providing reactive user inputs, sidebar forms, sliders, tabs, and real-time state re-rendering.
+- **NumPy**: Vectorized array operations, CFL time-step calculations, hydraulic head differential matrices, and numerical mass conservation.
+- **Pandas**: Structured time-series datasets, risk registry tables, and CSV report formatting.
+- **Plotly**: Dynamic data visualizations, including the 2D spatial heatmap grid and multi-series water depth progression charts.
+---
+## AI Collaboration & Development Tools:
+Antigravity IDE — Primary Agentic IDE & Execution Environment
+
+Claude — Algorithm Design, Refactoring & Code Logic Architecture
+
+ChatGPT — Mathematical Scaffolding, Documentation & Preset Formulation
+
+Gemini — Real-Time Problem Solving, Prompt Engineering & Script Generation
+
+VS Code — Source Code Editing, Git Workflows & Workspace Management
+---
+### Scientific Foundations
+* *Manning's Equations* for Open-Channel Flow Hydraulics
+* *Courant-Friedrichs-Lewy (CFL)* Gravity Wave Stability Criteria
+* *Bangalore Basin Spatial Modeling* inspired by BBMP Storm-Water Drain Networks
+* 
+### Scientific & Domain Foundations
+
+Manning's Open-Channel Flow Formulations — Used for modeling overland gravity flow velocities across urban surfaces.
+
+Courant-Friedrichs-Lewy (CFL) Condition — Applied to maintain numerical stability across dynamic hydraulic gradients.
+
+Bangalore Drainage & Topographical Insights — Topographical elevation variations and catchment spatial layouts inspired by BBMP (Bruhat Bengaluru Mahanagara Palike) storm-water drain network dynamics.

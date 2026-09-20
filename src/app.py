@@ -31,7 +31,7 @@ city_data = load_default_city()
 
 st.sidebar.title("🎛️ FlowShield Control Plane")
 
-st.sidebar.subheader("📐 Grid & Topology Configuration")
+st.sidebar.subheader("📐 Grid Topology Configuration")
 all_regions = [Region(**item) for item in city_data["regions"]]
 region_names = [r.name for r in all_regions]
 
@@ -43,11 +43,24 @@ time_step = st.sidebar.number_input("Time Step (Mins)", value=10.0, step=5.0)
 selected_epicenters = st.sidebar.multiselect(
     "Target Rainfall Regions (Grid Epicenters):", 
     region_names, 
-    default=region_names[:4]
+    default=region_names[:6]
 )
 start_r_ids = [r.id for r in all_regions if r.name in selected_epicenters]
 
-st.sidebar.subheader("🚧 Drainage Failure / Blocked Channels")
+# Per-Region Custom Rainfall Overrides
+custom_rain_map = {r.name: (global_rain if r.name in selected_epicenters else 0.0) for r in all_regions}
+
+with st.sidebar.expander("✏️ Customize Specific Region Intensities"):
+    st.write("Override rainfall intensity for individual zones:")
+    for name in selected_epicenters:
+        custom_rain_map[name] = st.number_input(
+            f"🌧️ {name} (mm/hr)", 
+            value=float(global_rain), 
+            min_value=0.0, max_value=200.0, step=5.0,
+            key=f"override_{name}"
+        )
+
+st.sidebar.subheader("🚧 Infrastructure Status")
 drainage_failures = st.sidebar.multiselect("Blocked Drainage Regions (Drainage = 0)", region_names)
 failure_r_ids = [r.id for r in all_regions if r.name in drainage_failures]
 
@@ -61,7 +74,7 @@ scenario = Scenario(
     drainage_failure_regions=failure_r_ids
 )
 
-engine = SimulationEngine(all_regions, scenario, flow_k=flow_k)
+engine = SimulationEngine(all_regions, scenario, flow_k=flow_k, custom_rain_map=custom_rain_map)
 sim_result = engine.run()
 
 # Header
@@ -119,7 +132,7 @@ with tab1:
         horizontal=True
     )
     
-    fig_map = render_grid_heatmap(sim_result, selected_step, layer_mode)
+    fig_map = render_grid_heatmap(sim_result, selected_step, layer_mode, custom_rain_map=custom_rain_map)
     st.plotly_chart(fig_map, use_container_width=True)
 
     st.markdown("---")
@@ -141,6 +154,7 @@ with tab1:
             "Sector": r.sector,
             "Elevation (m)": r.elevation,
             "Drainage (mm/hr)": r.drainage_capacity,
+            "Rainfall Intensity (mm/hr)": f"{custom_rain_map.get(r.name, 0.0):.0f}",
             "Water Level (mm)": f"{lvl:.1f} / {cap:.0f}",
             "Capacity Fill": round(lvl / cap, 3),
             "Status": curr_statuses[idx],

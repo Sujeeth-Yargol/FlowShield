@@ -28,7 +28,6 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         lvl = sim_res["water_levels"][time_idx, idx]
         cap = sim_res["capacities"][idx]
         
-        # Explicit status evaluation for label text
         fill_ratio = lvl / cap if cap > 0 else 1.0
         if fill_ratio < 0.60:
             status_str = "Safe"
@@ -37,7 +36,7 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         elif fill_ratio < 0.90:
             status_str = "Warning"
             status_icon = "🟡"
-            val_color = 0.75
+            val_color = 0.6
         else:
             status_str = "Critical"
             status_icon = "🔴"
@@ -62,11 +61,11 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
             dict(x=c_i, y=r_i, text=label, showarrow=False, font=dict(color="white", size=10, family="Inter"))
         )
 
+    # Strictly 3-color discrete palette for Safe, Warning, and Critical
     colorscale = [
         [0.0, "#2ecc71"],
-        [0.6, "#f39c12"],
-        [0.9, "#e74c3c"],
-        [1.0, "#900c3f"]
+        [0.5, "#f39c12"],
+        [1.0, "#e74c3c"]
     ] if "Status" in layer_mode else "Reds"
     
     fig = go.Figure(data=go.Heatmap(

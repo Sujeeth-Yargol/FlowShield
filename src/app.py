@@ -72,7 +72,6 @@ with st.sidebar.form("simulation_parameter_form"):
     st.subheader("🚧 Infrastructure Status")
     drainage_failures = st.multiselect("Blocked Drainage Regions (Drainage = 0)", region_names)
     
-    # FIXED CONSTANT: Flow coefficient fixed to 0.15 (physical grid constant)
     flow_k = 0.15
     
     apply_changes = st.form_submit_button("✅ Apply Simulation Parameters", use_container_width=True)
@@ -139,11 +138,22 @@ with tab1:
     
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("🚨 CRITICAL FLOOD ZONES", f"{num_critical}/{len(all_regions)}", "Ratio ≥ 90% capacity")
-    k2.metric("⚠️ WARNING CATCHMENTS", f"{num_warning}", "Ratio 60% - 90%")
+    k2.metric("⚠️ WARNING CATCHMENTS", f"{num_warning}", "Ratio 60% - 89.9%")
     k3.metric("🟢 SAFE RESILIENT ZONES", f"{num_safe}", "Water level < 60%")
     k4.metric("💧 AVG WATER ACCUMULATION", f"{avg_water_lvl:.1f} mm", "Mean basin depth")
     
     st.markdown("---")
+    
+    st.markdown("""
+    <div class="legend-card">
+        <b style="color: #58A6FF;">🎨 Flood Risk Classification Legend:</b>
+        <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap; font-size: 13px;">
+            <div><span style="color: #2ECC71; font-weight: bold;">🟢 Green (Safe)</span>: Water Level &lt; 60% Capacity</div>
+            <div><span style="color: #F39C12; font-weight: bold;">🟡 Yellow / Orange (Warning)</span>: Water Level 60% – 89.9% Capacity</div>
+            <div><span style="color: #E74C3C; font-weight: bold;">🔴 Red (Critical)</span>: Water Level ≥ 90% Capacity (Flooding)</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     layer_mode = st.radio(
         "Select Active Grid Layer:", 
@@ -156,7 +166,7 @@ with tab1:
 
     st.markdown("---")
     
-    st.subheader("🚨 Flood Risk & Early Warning Registry")
+    st.subheader("🚨 Flood Risk & Time-to-Critical Early Warning Registry")
     
     rows = []
     for idx, rid in enumerate(sim_result["region_ids"]):
@@ -164,12 +174,16 @@ with tab1:
         lvl = sim_result["water_levels"][selected_step, idx]
         cap = sim_result["capacities"][idx]
         rate = sim_result["rates_h"][selected_step, idx]
+        
+        # Calculate time remaining strictly to reach Critical status (90%)
         eta = calculate_time_to_critical(lvl, cap, rate)
-        eta_str = f"{eta:.1f} hrs" if eta is not None and eta > 0 else ("0.0 (Critical)" if eta == 0.0 else "Not projected")
-        
-        drain_rate = r.drainage_capacity
-        recession_hours = (lvl - 0.6 * cap) / drain_rate if lvl > 0.6 * cap and drain_rate > 0 else 0.0
-        
+        if eta == 0.0:
+            eta_str = "0.0 hrs (Already Critical)"
+        elif eta is not None and eta > 0:
+            eta_str = f"{eta:.1f} hrs to Critical"
+        else:
+            eta_str = "Not projected"
+            
         rows.append({
             "Region ID": r.id,
             "Region Name": r.name,
@@ -179,8 +193,7 @@ with tab1:
             "Rainfall (mm/hr)": f"{custom_rain_map.get(r.name, 0.0):.0f}",
             "Water Level (mm)": f"{lvl:.1f} / {cap:.0f}",
             "Status": curr_statuses[idx],
-            "ETA to Critical": eta_str,
-            "Evacuation Draining Time": f"{recession_hours:.1f} hrs" if recession_hours > 0 else "Normal"
+            "ETA to Critical Status": eta_str
         })
         
     df_reg = pd.DataFrame(rows)

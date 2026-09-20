@@ -62,7 +62,9 @@ class SimulationEngine:
             
             for _ in range(n_substeps):
                 rain_in = rain_rates_per_region * sub_dt
-                drained = np.minimum(temp_water + rain_in, (drainage_base * 4.0) * sub_dt)
+                
+                # Realistic 1:1 drainage capacity evacuation rate
+                drained = np.minimum(temp_water + rain_in, drainage_base * sub_dt)
                 
                 net_flow = np.zeros(N)
                 heads = temp_water + elevations

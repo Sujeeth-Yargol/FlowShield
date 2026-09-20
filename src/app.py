@@ -24,7 +24,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-@st.cache_data
+# Direct uncached loader so Streamlit immediately reloads updated JSON
 def load_default_city():
     with open("data/sample_city.json", "r") as f:
         data = json.load(f)
@@ -52,7 +52,6 @@ preset_choice = st.sidebar.selectbox(
     ]
 )
 
-# Preset Default Variables
 default_rain = 40.0
 default_epicenters = region_names
 default_rain_map = {}

@@ -274,25 +274,25 @@ with tab1:
         cap = sim_result["capacities"][idx]
         rate = sim_result["rates_h"][selected_step, idx]
         
-        eta_dict = calculate_time_to_thresholds(lvl, cap, rate)
+        rain_v = custom_rain_map.get(r.name, 0.0)
+        
+        eta_dict = calculate_time_to_thresholds(lvl, cap, rate, rainfall_rate=rain_v, drainage_capacity=r.drainage_capacity)
         eta_warn = eta_dict["eta_warning"]
         eta_crit = eta_dict["eta_critical"]
         
-        # ETA to Warning string
         if eta_warn == 0.0:
             warn_str = "In Warning/Critical"
         elif eta_warn is not None and eta_warn > 0:
             warn_str = f"{eta_warn:.1f} hrs"
         else:
-            warn_str = "Not projected"
+            warn_str = "No Risk (Sufficient Drainage)"
             
-        # ETA to Critical string
         if eta_crit == 0.0:
             crit_str = "Already Critical"
         elif eta_crit is not None and eta_crit > 0:
             crit_str = f"{eta_crit:.1f} hrs"
         else:
-            crit_str = "Not projected"
+            crit_str = "No Risk (Sufficient Drainage)"
             
         rows.append({
             "Region ID": r.id,
@@ -300,7 +300,7 @@ with tab1:
             "Sector": r.sector,
             "Elevation (m)": r.elevation,
             "Drainage Capacity (mm/hr)": r.drainage_capacity,
-            "Rainfall (mm/hr)": f"{custom_rain_map.get(r.name, 0.0):.0f}",
+            "Rainfall (mm/hr)": f"{rain_v:.0f}",
             "Water Level (mm)": f"{lvl:.1f} / {cap:.0f}",
             "Status": curr_statuses[idx],
             "ETA to Warning (2000mm)": warn_str,

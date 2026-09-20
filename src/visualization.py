@@ -28,20 +28,21 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         lvl = sim_res["water_levels"][time_idx, idx]
         cap = sim_res["capacities"][idx]
         
+        # Calculate true fill ratio against capacity
         fill_ratio = lvl / cap if cap > 0 else 1.0
         
         if fill_ratio < 0.60:
             status_str = "Safe"
             status_icon = "🟢"
-            status_val = 0.0
+            status_val = 0.0   # Green
         elif fill_ratio < 0.90:
             status_str = "Warning"
             status_icon = "🟡"
-            status_val = 0.5
+            status_val = 0.5   # Yellow
         else:
             status_str = "Critical"
             status_icon = "🔴"
-            status_val = 1.0
+            status_val = 1.0   # Red
             
         if "Status" in layer_mode:
             val = status_val
@@ -63,21 +64,25 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         )
 
     if "Status" in layer_mode:
+        # Strict discrete colorscale mapping: 0.0 -> Green, 0.5 -> Yellow, 1.0 -> Red
         colorscale = [
             [0.0, "#2ecc71"],
-            [0.5, "#f39c12"],
+            [0.25, "#2ecc71"],
+            [0.26, "#f39c12"],
+            [0.75, "#f39c12"],
+            [0.76, "#e74c3c"],
             [1.0, "#e74c3c"]
         ]
         z_min, z_max = 0.0, 1.0
     elif "Drainage" in layer_mode:
         colorscale = "Blues"
-        z_min, z_max = 0.0, max(300.0, np.max(grid_data))
+        z_min, z_max = 0.0, max(300.0, float(np.max(grid_data)))
     elif "Water" in layer_mode:
         colorscale = "Reds"
-        z_min, z_max = 0.0, max(100.0, np.max(grid_data))
+        z_min, z_max = 0.0, max(100.0, float(np.max(grid_data)))
     else:
         colorscale = "Viridis"
-        z_min, z_max = np.min(grid_data), np.max(grid_data)
+        z_min, z_max = float(np.min(grid_data)), float(np.max(grid_data))
     
     fig = go.Figure(data=go.Heatmap(
         z=grid_data,

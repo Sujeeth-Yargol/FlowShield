@@ -40,45 +40,61 @@ st.sidebar.title("🎛️ FlowShield Control Plane")
 base_regions = [Region(**item) for item in city_data["regions"]]
 region_names = [r.name for r in base_regions]
 
-# --- PRESET LOADER LOGIC ---
+# --- DEMO PRESETS DEFINITION ---
 st.sidebar.subheader("🎬 Demo Quick-Presets")
 preset_choice = st.sidebar.selectbox(
     "Load Scenario Preset:",
     [
         "Custom Manual Inputs",
-        "🎯 Preset 1: Balanced City Risk (🟢 Green, 🟡 Yellow, 🔴 Red)",
-        "🌧️ Preset 2: Severe Monsoonal Downpour (High Critical Risk)",
-        "🛡️ Preset 3: Post-Infrastructure Upgrade (Resilient Basin)"
+        "🎯 Preset 1: Multi-Risk City (5 Green, 6 Yellow, 5 Red)",
+        "🌧️ Preset 2: Severe Monsoonal Crisis (2 Green, 5 Yellow, 9 Red)",
+        "🛡️ Preset 3: Infrastructure Resilient Basin (10 Green, 4 Yellow, 2 Red)"
     ]
 )
 
-# Preset Defaults
+# Preset Variable Defaults
 default_rain = 50.0
-default_epicenters = region_names[:6]
+default_epicenters = region_names
+default_rain_map = {}
 default_drainage_zones = []
 default_drainage_values = {}
 
-if preset_choice == "🎯 Preset 1: Balanced City Risk (🟢 Green, 🟡 Yellow, 🔴 Red)":
-    default_rain = 45.0
-    default_epicenters = ["Yeshwanthpur", "Hebbal - Sahakar Nagar", "Rajajinagar", "Indiranagar - Domlur Valley", "Jayanagar"]
-    default_drainage_zones = ["Yeshwanthpur", "Majestic"]
-    default_drainage_values = {"Yeshwanthpur": 120.0, "Majestic": 100.0}
+if preset_choice == "🎯 Preset 1: Multi-Risk City (5 Green, 6 Yellow, 5 Red)":
+    default_rain = 50.0
+    default_epicenters = region_names
+    default_rain_map = {
+        "Yeshwanthpur": 20.0, "Hebbal - Sahakar Nagar": 45.0, "Manyata Tech Park - Nagavara": 30.0, "Hennur - KR Puram Lake Reach": 50.0,
+        "Rajajinagar": 25.0, "Majestic": 35.0, "Indiranagar - Domlur Valley": 60.0, "Marathahalli - ORR Tech Corridor": 40.0,
+        "Vijayanagar": 15.0, "Jayanagar": 55.0, "Koramangala 4th Block - Valley": 65.0, "Bellandur Lake Wetland": 70.0,
+        "Banashankari Hills": 20.0, "BTM Layout - Madiwala Catchment": 45.0, "Silk Board Chokepoint - HSR": 65.0, "Varthur Downstream Lake Basin": 50.0
+    }
+    default_drainage_zones = ["Yeshwanthpur", "Majestic", "Vijayanagar"]
+    default_drainage_values = {"Yeshwanthpur": 80.0, "Majestic": 70.0, "Vijayanagar": 80.0}
 
-elif preset_choice == "🌧️ Preset 2: Severe Monsoonal Downpour (High Critical Risk)":
-    default_rain = 90.0
-    default_epicenters = region_names[:12]
+elif preset_choice == "🌧️ Preset 2: Severe Monsoonal Crisis (2 Green, 5 Yellow, 9 Red)":
+    default_rain = 85.0
+    default_epicenters = region_names
+    default_rain_map = {name: 85.0 for name in region_names}
+    default_rain_map["Yeshwanthpur"] = 30.0
+    default_rain_map["Banashankari Hills"] = 30.0
     default_drainage_zones = []
     default_drainage_values = {}
 
-elif preset_choice == "🛡️ Preset 3: Post-Infrastructure Upgrade (Resilient Basin)":
-    default_rain = 50.0
-    default_epicenters = region_names[:8]
-    default_drainage_zones = ["Indiranagar - Domlur Valley", "Jayanagar", "Koramangala 4th Block - Valley", "Bellandur Lake Wetland"]
+elif preset_choice == "🛡️ Preset 3: Infrastructure Resilient Basin (10 Green, 4 Yellow, 2 Red)":
+    default_rain = 40.0
+    default_epicenters = region_names
+    default_rain_map = {name: 40.0 for name in region_names}
+    default_drainage_zones = [
+        "Hebbal - Sahakar Nagar", "Indiranagar - Domlur Valley", "Jayanagar", 
+        "Koramangala 4th Block - Valley", "Bellandur Lake Wetland", "Silk Board Chokepoint - HSR"
+    ]
     default_drainage_values = {
-        "Indiranagar - Domlur Valley": 180.0,
-        "Jayanagar": 150.0,
-        "Koramangala 4th Block - Valley": 200.0,
-        "Bellandur Lake Wetland": 220.0
+        "Hebbal - Sahakar Nagar": 120.0,
+        "Indiranagar - Domlur Valley": 150.0,
+        "Jayanagar": 120.0,
+        "Koramangala 4th Block - Valley": 180.0,
+        "Bellandur Lake Wetland": 200.0,
+        "Silk Board Chokepoint - HSR": 160.0
     }
 
 st.sidebar.markdown("---")
@@ -99,10 +115,11 @@ with st.sidebar.form("simulation_parameter_form"):
     st.write("✏️ **Custom Region Rainfall Overrides:**")
     custom_rain_map = {}
     for name in region_names:
+        init_val = default_rain_map.get(name, float(global_rain))
         if name in selected_epicenters:
             custom_rain_map[name] = st.number_input(
                 f"🌧️ {name} (mm/hr)", 
-                value=float(global_rain), 
+                value=float(init_val), 
                 min_value=0.0, max_value=200.0, step=5.0,
                 key=f"override_{name}"
             )

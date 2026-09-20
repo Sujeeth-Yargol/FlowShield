@@ -203,7 +203,7 @@ FlowShield/
 
 ### Team Information
 Team Name: Stack Overflow
-Members: Samrudh AV, Sai Chiranth M, Sujeeth Yargol, Saksham Singh
+Members: Samrudh AV (Lead), Sai Chiranth M, Sujeeth Yargol, Saksham Singh
 
 ## Libraries and Dependencies
 

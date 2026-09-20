@@ -40,7 +40,7 @@ class SimulationEngine:
         
         rain_rates_per_region = np.array([
             self.custom_rain_map.get(self.regions[rid].name, self.scenario.rainfall_intensity)
-            if rid in self.scenario.rainfall_start regions else 0.0
+            if rid in self.scenario.rainfall_start_regions else 0.0
             for rid in region_ids
         ])
         
@@ -62,8 +62,6 @@ class SimulationEngine:
             
             for _ in range(n_substeps):
                 rain_in = rain_rates_per_region * sub_dt
-                
-                # Active evacuation rate scaling
                 drained = np.minimum(temp_water + rain_in, (drainage_base * 4.0) * sub_dt)
                 
                 net_flow = np.zeros(N)

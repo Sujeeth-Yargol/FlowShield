@@ -134,25 +134,59 @@ with tab1:
     
     st.subheader("🗺️ Multi-Layer Grid Visualization")
     
-    # Explicit Color Legend Box
-    st.markdown("""
-    <div class="legend-card">
-        <b style="color: #58A6FF;">🎨 Flood Risk Classification Color Legend:</b>
-        <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap; font-size: 13px;">
-            <div><span style="color: #2ECC71; font-weight: bold;">🟢 Green (Safe)</span>: Water Level &lt; 60% Capacity</div>
-            <div><span style="color: #F39C12; font-weight: bold;">🟡 Yellow / Orange (Warning)</span>: Water Level 60% – 90% Capacity</div>
-            <div><span style="color: #E74C3C; font-weight: bold;">🔴 Red (Critical)</span>: Water Level ≥ 90% Capacity (Flooding)</div>
-            <div><span style="color: #900C3F; font-weight: bold;">🟣 Maroon (Severe)</span>: &gt; 100% Overflow Crisis</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
     layer_mode = st.radio(
         "Select Active Grid Layer:", 
         ["🚨 Flood Early Warning Status (Safe/Warning/Critical)", "💧 Water Accumulation Level (mm)", "⛰️ Terrain Elevation Topography (m)", "🚰 Storm Drainage Capacity (mm/hr)"], 
         horizontal=True
     )
     
+    # Dynamic Color Legend Box Based on Active Layer
+    if "Status" in layer_mode:
+        st.markdown("""
+        <div class="legend-card">
+            <b style="color: #58A6FF;">🎨 Flood Risk Status Color Legend:</b>
+            <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap; font-size: 13px;">
+                <div><span style="color: #2ECC71; font-weight: bold;">🟢 Green (Safe)</span>: Water Level &lt; 60% Capacity</div>
+                <div><span style="color: #F39C12; font-weight: bold;">🟡 Yellow / Orange (Warning)</span>: Water Level 60% – 90% Capacity</div>
+                <div><span style="color: #E74C3C; font-weight: bold;">🔴 Red (Critical)</span>: Water Level ≥ 90% Capacity (Flooding)</div>
+                <div><span style="color: #900C3F; font-weight: bold;">🟣 Maroon (Severe)</span>: &gt; 100% Overflow Crisis</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    elif "Water" in layer_mode:
+        st.markdown("""
+        <div class="legend-card">
+            <b style="color: #58A6FF;">🎨 Water Accumulation Level Heatmap (Reds Scale):</b>
+            <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap; font-size: 13px;">
+                <div><span style="color: #FFC0CB; font-weight: bold;">🌸 Light Pink</span>: Minimal Inundation (&lt; 500 mm)</div>
+                <div><span style="color: #FF4500; font-weight: bold;">🟠 Bright Orange</span>: Moderate Accumulation (500 mm – 3000 mm)</div>
+                <div><span style="color: #8B0000; font-weight: bold;">🔴 Crimson Red</span>: Severe Deep Inundation (&gt; 3000 mm)</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    elif "Elevation" in layer_mode:
+        st.markdown("""
+        <div class="legend-card">
+            <b style="color: #58A6FF;">🎨 Terrain Elevation Topography Legend (Reds Scale):</b>
+            <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap; font-size: 13px;">
+                <div><span style="color: #FFC0CB; font-weight: bold;">🌸 Light Pink</span>: Low Valley/Basin Sinks (High Flood Accumulation Risk, e.g. 880m–895m)</div>
+                <div><span style="color: #FF4500; font-weight: bold;">🟠 Medium Red</span>: Mid-level Plateau (e.g. 900m–915m)</div>
+                <div><span style="color: #8B0000; font-weight: bold;">🔴 Dark Red</span>: High Ridge/Ridge-line Topography (Natural Drainage Runoff, e.g. 920m–935m)</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:  # Drainage Capacity
+        st.markdown("""
+        <div class="legend-card">
+            <b style="color: #58A6FF;">🎨 Storm Drainage Capacity Legend (Reds Scale):</b>
+            <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap; font-size: 13px;">
+                <div><span style="color: #FFC0CB; font-weight: bold;">🌸 Light Pink</span>: Weak Storm Drain Network (&lt; 20 mm/hr or Failure Zone)</div>
+                <div><span style="color: #FF4500; font-weight: bold;">🟠 Medium Red</span>: Standard Urban Throughput (20 mm/hr – 40 mm/hr)</div>
+                <div><span style="color: #8B0000; font-weight: bold;">🔴 Dark Red</span>: Heavy High-Capacity Culvert Network (&gt; 40 mm/hr)</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
     fig_map = render_grid_heatmap(sim_result, selected_step, layer_mode, custom_rain_map=custom_rain_map)
     st.plotly_chart(fig_map, use_container_width=True)
 

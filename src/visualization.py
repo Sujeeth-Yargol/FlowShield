@@ -3,7 +3,7 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 
-def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dragmode: str = "select", custom_rain_map: dict = None):
+def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dragmode: str = "pan", custom_rain_map: dict = None):
     region_ids = sim_res["region_ids"]
     regions = sim_res["regions"]
     
@@ -24,16 +24,31 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         r = regions[rid]
         r_i, c_i = r.grid_pos
         
-        # Determine rainfall intensity for this specific cell
-        rain_val = custom_rain_map.get(r.name, 45.0) if custom_rain_map else 45.0
+        rain_val = custom_rain_map.get(r.name, 0.0) if custom_rain_map else 0.0
+        lvl = sim_res["water_levels"][time_idx, idx]
+        cap = sim_res["capacities"][idx]
         
+        # Explicit status evaluation for label text
+        fill_ratio = lvl / cap if cap > 0 else 1.0
+        if fill_ratio < 0.60:
+            status_str = "Safe"
+            status_icon = "🟢"
+            val_color = 0.2
+        elif fill_ratio < 0.90:
+            status_str = "Warning"
+            status_icon = "🟡"
+            val_color = 0.75
+        else:
+            status_str = "Critical"
+            status_icon = "🔴"
+            val_color = 1.0
+            
         if "Status" in layer_mode:
-            val = sim_res["water_levels"][time_idx, idx] / r.max_capacity
-            status = sim_res["statuses"][time_idx][idx]
-            label = f"<b>{r.name}</b><br>● {status}<br>🌧️ {rain_val:.0f} mm/hr<br>💧 {sim_res['water_levels'][time_idx, idx]:.1f} mm<br>⛰️ {r.elevation:.0f}m"
+            val = val_color
+            label = f"<b>{r.name}</b><br>{status_icon} {status_str}<br>🌧️ {rain_val:.0f} mm/hr<br>💧 {lvl:.1f} mm<br>⛰️ {r.elevation:.0f}m"
         elif "Water" in layer_mode:
-            val = sim_res["water_levels"][time_idx, idx]
-            label = f"<b>{r.name}</b><br>🌧️ {rain_val:.0f} mm/hr<br>💧 {val:.1f} mm"
+            val = lvl
+            label = f"<b>{r.name}</b><br>🌧️ {rain_val:.0f} mm/hr<br>💧 {lvl:.1f} mm"
         elif "Elevation" in layer_mode:
             val = r.elevation
             label = f"<b>{r.name}</b><br>⛰️ {val:.0f} m"
@@ -59,7 +74,9 @@ def render_grid_heatmap(sim_res: dict, time_idx: int, layer_mode: str, active_dr
         text=text_matrix,
         hoverinfo="text+z",
         colorscale=colorscale,
-        showscale=False
+        showscale=False,
+        zmin=0.0 if "Status" in layer_mode else None,
+        zmax=1.0 if "Status" in layer_mode else None
     ))
     
     fig.update_layout(

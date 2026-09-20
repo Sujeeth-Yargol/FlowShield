@@ -27,7 +27,12 @@ st.markdown("""
 @st.cache_data
 def load_default_city():
     with open("data/sample_city.json", "r") as f:
-        return json.load(f)
+        data = json.load(f)
+        # Recalibrate capacities for standard realistic urban basin scale (3000 mm - 6000 mm)
+        for r in data["regions"]:
+            if r["max_capacity"] < 3000.0:
+                r["max_capacity"] = 4500.0
+        return data
 
 city_data = load_default_city()
 
@@ -110,14 +115,12 @@ with tab1:
     
     st.caption(f"Viewing: ⚙️ **SIMULATION STATE at t={current_t:.2f} hrs**")
     
-    # Strictly compute live classification status for current time step
     curr_statuses = []
     for idx in range(len(all_regions)):
         w_lvl = sim_result["water_levels"][selected_step, idx]
         m_cap = sim_result["capacities"][idx]
         curr_statuses.append(classify_status(w_lvl, m_cap))
     
-    # Store synchronized statuses into sim_result for heatmap rendering
     sim_result["statuses"][selected_step] = curr_statuses
     
     num_critical = curr_statuses.count("Critical")
